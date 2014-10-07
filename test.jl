@@ -1,32 +1,29 @@
+using PyCall
+@pyimport matplotlib.pyplot as plt
+
+
 include("operators.jl")
 
-# Grid size constants
-n1 = 10;
-n2 = 11;
-n3 = 12;
+n1,n2, n3 = 10,12, 14
 
-# Grid resolution constants
-dn1 = .1;
-dn2 = .2;
-dn3 = .3;
+w_sqr = 1
+m = ones(n1,n2,n3)
+rho = ones(n1,n2, n3)
+q = zeros(n1+1,n2+1, n3+1)
+q[5;5; 1] = 1.0
 
-# Make the known model params (constants to start)
-w = ones(n1,n2,n3) * 10
-k = ones(n1,n2,n3) * 5.0
-sigma = ones(n1+1,n2+1,n3+1) * 2.0
+# Make all operators
+Av = nodeAvg(n1,n2,n3)
+AvE = edgeAvg(n1,n2,n3)
+G = nodeDiff(n1,n2,n3)
 
-# Make the operators
-Av = AvOp(n1,n2,n3);
-Avn = AvnOp(n1,n2,n3);
-D = DiffOp(n1,n2,n3);
-L_inv = ScaleOp(n1,n2,n3,1/dn1,1/dn2,1/dn3);
+# we are solving Au=q for u
+A = G'*diagm(AvE'*rho[:])*G + w_sqr*diagm(Av'm[:])
 
-# Make the four blocks of our system matrix
-#B1 = L_inv;
-#B2 = D';
-#B3 = -D* diagm(sigma[:])
-#B4 = Av*L_inv*((w.*w.*k.*k)[:])
+# solve it
+u = A\q[:]
+u = reshape(u,n1+1, n2+1, n3+1)
 
-# A = [B1 B2;B3 B4];
 
-A = D*spdiagm(Av*sigma[:])*D' + ((w[:].^2)*spdiagm(Avn*k[:].^2))
+plt.imshow(u[:,:,7])
+plt.show()
