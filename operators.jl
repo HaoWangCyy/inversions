@@ -21,11 +21,47 @@ function nodeAvg(n1,n2,n3)
 end
 
 
+function edgeAvg(n1,n2)
+    # Averages from edges to cell centers
+    Av1 = kron(nodeAvg(n2),speye(n1))
+    Av2 = kron(speye(n2),nodeAvg(n1))
+    
+    
+    return [Av1 Av2] * 0.5
+end 
+
+function edgeAvg(n1,n2,n3)
+    
+    A1 = kron(nodeAvg(n3),kron(nodeAvg(n2),speye(n1))); 
+    A2 = kron(nodeAvg(n3),kron(speye(n2),nodeAvg(n1))); 
+    A3 = kron(speye(n3),kron(nodeAvg(n2),nodeAvg(n1)));
+    
+    return [A1 A2 A3] / 3.0;
+end
 
 function nodeDiff(n)
-    # Returns a difference operator to differentiate an n-element vector
+    # Returns a difference operator to differentiate on the nodes of a grid
 
-    D =  spdiagm(tuple(ones(n) * 1, ones(n) *-1),[0,-1])
+    D =  spdiagm(tuple(ones(n) * -1, ones(n) *1),[0,-1])
     return D'
 end
 
+
+function nodeDiff(n1,n2)
+    # Returns a difference operator to differentiate an n-element vector
+
+    G1 = kron(speye(n2+1), nodeDiff(n1))
+    G2 = kron(nodeDiff(n2), speye(n1+1))
+    
+    return [G1,G2]
+end
+
+function nodeDiff(n1,n2,n3)
+
+    G1 = kron(speye(n3+1), kron(speye(n2+1), nodeDiff(n1)))
+    G2 = kron(speye(n3+1), kron(nodeDiff(n2), speye(n1+1)))
+    G3 = kron(nodeDiff(n3), kron(speye(n2+1), speye(n1+1)))
+
+
+    return [G1,G2,G3]
+end 
