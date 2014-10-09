@@ -169,6 +169,74 @@ function helmholtz1D()
 
     # solve it
     u = A\q;
+
+    # no errors, so try an analytic function and calculate q.
+    n_nodes = 100
+    n_cells = n_nodes -1
+
+    # sim
+    rho = ones(n_nodes)
+    x = linspace(0,1,n_nodes)
+    dx = x[2]-x[1]
+    w_sqr = 0.1
+    m = randn(n_nodes).^2
+    q = (rho.*((-4*(pi^2)*sin(2*pi*x)) - (9*(pi^2)*sin(3*pi*x))) +
+         (w_sqr*m.*(sin(2*pi*x) + sin(3*pi*x))))
+
+    # Truth with 0 as boundary conditions
+    u_truth = sin(2*pi*x) + sin(3*pi*x)
+    
+
+    # Make all operators
+    Av = nodeAvg(n_cells)
+    G = nodeDiff(n_cells)
+    V = ones(n_cells) * dx
+    
+    
+    m_cell = Av*m
+    rho_cell = Av*rho
+    
+    # we are solving Au=q for u
+    A = G'*diagm(V.*rho_cell)*G + w_sqr*diagm(Av'*(V.*m_cell))
+    LS = A
+    RS = diagm(Av'*V)*q
+    u_test = LS\RS
+
+    
+
+    n_nodes = 1000
+    n_cells = n_nodes-1
+    # sim
+    rho = ones(n_nodes)
+    x = linspace(0,1,n_nodes)
+    dx = x[2]-x[1]
+    w_sqr = 0.011
+    m = randn(n_nodes).^2.0
+    q = (rho.*((4*(pi^2)*cos(2*pi*x)) + (16*(pi^2)*cos(4*pi*x))) +
+         (w_sqr*m.*(cos(2*pi*x) + cos(4*pi*x))))
+
+
+    # Truth with 0 as boundary conditions(dirichlet)
+    u_truth =cos(2*pi*x) + cos(4*pi*x)
+
+    # Make all operators
+    Av = nodeAvg(n_cells)
+    G = nodeDiff(n_cells)
+    V = ones(n_cells) * dx^2
+   
+    
+    
+    m_cell = Av*m 
+    rho_cell = Av*rho
+    
+    # we are solving Au=q for u
+    A = G'*diagm(rho_cell)*G + diagm(Av'*(w_sqr*V.*m_cell))
+    LS = A
+    RS = diagm(Av'*V)*q
+    u_test = LS\RS
+
+    @test_approx_eq_eps u_test u_truth dx
+    
 end
     
 
@@ -194,6 +262,7 @@ function helmholtz2D()
     u = A\q[:]
 
     u = reshape(u,n1+1, n2+1)
+    return
 end 
 
 function helmholtz3D()
@@ -217,6 +286,7 @@ function helmholtz3D()
     # solve it
     u = A\q[:]
     u = reshape(u,n1+1, n2+1, n3+1)
+    return
 end 
     
 nodeAvg1D_test()
