@@ -4,43 +4,64 @@ using PyCall
 
 include("operators.jl")
 
-n_nodes = 1000
-n_cells = n_nodes-1
-    # sim
-    rho = ones(n_nodes)
-    x = linspace(0,1,n_nodes)
-    dx = x[2]-x[1]
-    w_sqr = 0.011
-    m = randn(n_nodes).^2.0
-    q = (rho.*((4*(pi^2)*cos(2*pi*x)) + (16*(pi^2)*cos(4*pi*x))) +
-         (w_sqr*m.*(cos(2*pi*x) + cos(4*pi*x))))
+# Geometry
+n1=100
+n2=100
+x = linspace(0,1,n1+1)
+y = linspace(0,1,n2+1)
+
+dx = x[2]-x[1]
+dy = y[2]-y[1]
+
+# Model
+w_sqr = 1.0
+m = ones(n1+1,n2+1).^2
+rho = ones(n1+1,n2+1)
+
+# truth data
+u_truth = zeros(n1+1,n2+1)
+for i in 1:n1+1
+    for j in 1:n2+1
+        u_truth[i,j] = cos(pi*x[i]) + cos(pi*y[j])
+    end 
+ end
+ 
+q = -(pi^2*rho.*u_truth) +(w_sqr*m.*u_truth)
 
 
-    # Truth with 0 as boundary conditions(dirichlet)
-    u_truth =cos(2*pi*x) + cos(4*pi*x)
+# Make all operators
+Av = nodeAvg(n1,n2)
+AvE = edgeAvg(n1,n2)
+G = nodeDiff(n1,n2)
+V = ones(n1*n2) * dx*dy
 
-    # Make all operators
-    Av = nodeAvg(n_cells)
-    G = nodeDiff(n_cells)
-    V = ones(n_cells) * dx^2
-   
-    
-    
-    m_cell = Av*m 
-    rho_cell = Av*rho
-    
-    # we are solving Au=q for u
-    A = G'*diagm(rho_cell)*G + diagm(Av'*(w_sqr*V.*m_cell))
-    LS = A
-    RS = diagm(Av'*V)*q
-    u_test = LS\RS
+# we are solving Au=q for u
+H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
+LS = H
+RS = diagm(Av'*V)*q[:]
 
-plt.subplot(131)
-plt.plot(u_truth)
-plt.subplot(132)
-plt.plot(u_test)
-plt.subplot(133)
-plt.plot(u_test-u_truth)
+u_test = reshape(LS\RS, n1+1, n2+1)
+u_test_new = zeros(n1+1, n2+1)
+
+for i in 1:(n1+1)
+    for j in 1:(n2+1)
+        u_test_new[i,j] = u_test[end-(i-1), end-(j-1)]
+    end
+end
+
+plt.figure()
+plt.subplot(121)
+plt.imshow(u_test_new)
+plt.subplot(122)
+plt.imshow(u_truth)
+plt.show()
+
+plt.figure()
+plt.subplot(121)
+plt.plot(u_test_new[:])
+plt.subplot(122)
+plt.plot(u_truth[:])
+
 plt.show()
 
 

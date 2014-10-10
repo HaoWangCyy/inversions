@@ -148,65 +148,14 @@ function edgeAvg3D_test()
 end
     
 
-function helmholtz1D()
+function helmholtz1D_check(n)
 
-    # Just see if it runs to completion without error
+    # Try a fictitious source test
 
-    n1 = 10
+    # Make the mesh size
+    n_nodes = n + 1
+    n_cells = n
 
-    w_sqr = 1
-    m = ones(n1)
-    rho = ones(n1)
-    q = zeros(n1+1)
-    q[n1/2] = 1.0
-        
-    # Make all operators
-    Av = nodeAvg(n1)
-    G = nodeDiff(n1)
-
-    # we are solving Au=q for u
-    A = G'*diagm(rho)*G + w_sqr*diagm(Av'm)
-
-    # solve it
-    u = A\q;
-
-    # no errors, so try an analytic function and calculate q.
-    n_nodes = 100
-    n_cells = n_nodes -1
-
-    # sim
-    rho = ones(n_nodes)
-    x = linspace(0,1,n_nodes)
-    dx = x[2]-x[1]
-    w_sqr = 0.1
-    m = randn(n_nodes).^2
-    q = (rho.*((-4*(pi^2)*sin(2*pi*x)) - (9*(pi^2)*sin(3*pi*x))) +
-         (w_sqr*m.*(sin(2*pi*x) + sin(3*pi*x))))
-
-    # Truth with 0 as boundary conditions
-    u_truth = sin(2*pi*x) + sin(3*pi*x)
-    
-
-    # Make all operators
-    Av = nodeAvg(n_cells)
-    G = nodeDiff(n_cells)
-    V = ones(n_cells) * dx
-    
-    
-    m_cell = Av*m
-    rho_cell = Av*rho
-    
-    # we are solving Au=q for u
-    A = G'*diagm(V.*rho_cell)*G + w_sqr*diagm(Av'*(V.*m_cell))
-    LS = A
-    RS = diagm(Av'*V)*q
-    u_test = LS\RS
-
-    
-
-    n_nodes = 1000
-    n_cells = n_nodes-1
-    # sim
     rho = ones(n_nodes)
     x = linspace(0,1,n_nodes)
     dx = x[2]-x[1]
@@ -214,29 +163,99 @@ function helmholtz1D()
     m = randn(n_nodes).^2.0
     q = (rho.*((4*(pi^2)*cos(2*pi*x)) + (16*(pi^2)*cos(4*pi*x))) +
          (w_sqr*m.*(cos(2*pi*x) + cos(4*pi*x))))
-
-
+    
     # Truth with 0 as boundary conditions(dirichlet)
     u_truth =cos(2*pi*x) + cos(4*pi*x)
-
+    
     # Make all operators
     Av = nodeAvg(n_cells)
+    AvE = edgeAvg(n_cells)
     G = nodeDiff(n_cells)
-    V = ones(n_cells) * dx^2
-   
-    
-    
-    m_cell = Av*m 
+    V = ones(n_cells) * dx
+
+    # move to cell centers
+    m_cell = Av*m
     rho_cell = Av*rho
     
     # we are solving Au=q for u
-    A = G'*diagm(rho_cell)*G + diagm(Av'*(w_sqr*V.*m_cell))
-    LS = A
+   
+    LS = helmholtzNeumann(Av, AvE, G,V,rho_cell, w_sqr, m_cell)
     RS = diagm(Av'*V)*q
     u_test = LS\RS
 
+    # test that convergence is O(dx)
     @test_approx_eq_eps u_test u_truth dx
+    return mean(abs(u_test-u_truth))
+end
+
+function helmholtz2D_check()
+
+    # Geometry
+    n1=100
+    n2=100
+    x = linspace(0,1,n1+1)
+    y = linspace(0,1,n2+1)
+
+    dx = x[2]-x[1]
+    dy = y[2]-y[1]
+
+    # Model
+    w_sqr = 1.0
+    m = ones(n1+1,n2+1).^2
+    rho = ones(n1+1,n2+1)
+
+    # truth data
+    u_truth = zeros(n1+1,n2+1)
+    for i in 1:n1+1
+        for j in 1:n2+1
+            u_truth[i,j] = cos(pi*x[i]) + cos(pi*y[j])
+        end 
+    end
     
+    q = -(pi^2*rho.*u_truth) +(w_sqr*m.*u_truth)
+
+
+    # Make all operators
+    Av = nodeAvg(n1,n2)
+    AvE = edgeAvg(n1,n2)
+    G = nodeDiff(n1,n2)
+    V = ones(n1*n2) * dx*dy
+    
+    # we are solving Au=q for u
+    H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
+    LS = H
+    RS = diagm(Av'*V)*q[:]
+
+    u_test = reshape(LS\RS, n1+1, n2+1)
+    u_test_new = zeros(n1+1, n2+1)
+
+    for i in 1:(n1+1)
+        for j in 1:(n2+1)
+        u_test_new[i,j] = u_test[end-(i-1), end-(j-1)]
+        end
+    end
+    return
+end
+
+function helmholtz1D_converge()
+
+    # Check the convergence
+    nsteps = 5
+    error = zeros(nsteps)
+ 
+
+    cells = [2^i for i in 6:(6+nsteps-1)]
+
+    for i in 1:nsteps
+
+        error[i] = helmholtz1D(cells[i])
+    end
+    
+    rate = error[1:end-1]./error[2:end]
+
+    # Test that when halfing the grid size we converge to a true answer
+    # in steps of O(h^2)
+    @test_approx_eq_eps rate ones(nsteps-1)*4 0.5
 end
     
 
@@ -300,6 +319,6 @@ nodeDiff1D_test()
 nodeDiff2D_test()
 nodeDiff3D_test()
 
-helmholtz1D()
+helmholtz1D_converge()
 helmholtz2D()
 helmholtz3D()

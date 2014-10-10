@@ -21,6 +21,10 @@ function nodeAvg(n1,n2,n3)
 end
 
 
+function edgeAvg(n)
+    return speye(n)
+end
+
 function edgeAvg(n1,n2)
     # Averages from edges to cell centers
     Av1 = kron(nodeAvg(n2),speye(n1))
@@ -64,4 +68,11 @@ function nodeDiff(n1,n2,n3)
 
 
     return [G1,G2,G3]
+end 
+
+function helmholtzNeumann(Av, AvE, G, V, rho, w_sqr, m)
+    # Returns the helmholtz operator for dirichlet boundary conditions.
+   
+    H = G'*diagm(AvE'*(rho./V))*G + diagm(Av'*(w_sqr*V.*m))
+    return H
 end 
