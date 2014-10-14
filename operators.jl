@@ -31,7 +31,7 @@ function edgeAvg(n1,n2)
     Av2 = kron(speye(n2),nodeAvg(n1))
     
     
-    return [Av1 Av2] * 0.5
+    return [Av1 Av2] 
 end 
 
 function edgeAvg(n1,n2,n3)
@@ -40,7 +40,7 @@ function edgeAvg(n1,n2,n3)
     A2 = kron(nodeAvg(n3),kron(speye(n2),nodeAvg(n1))); 
     A3 = kron(speye(n3),kron(nodeAvg(n2),nodeAvg(n1)));
     
-    return [A1 A2 A3] / 3.0;
+    return [A1 A2 A3]
 end
 
 function nodeDiff(n)
@@ -73,6 +73,6 @@ end
 function helmholtzNeumann(Av, AvE, G, V, rho, w_sqr, m)
     # Returns the helmholtz operator for dirichlet boundary conditions.
    
-    H = G'*diagm(AvE'*(rho./V))*G + diagm(Av'*(w_sqr*V.*m))
+    H = G'*diagm(AvE'*(rho.*V))*G + diagm(Av'*(w_sqr*V.*m))
     return H
 end 
