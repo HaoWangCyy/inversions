@@ -36,7 +36,7 @@ function edgeAvg(n1,n2,n3)
     
     A1 = kron(nodeAvg(n3),kron(nodeAvg(n2),speye(n1))); 
     A2 = kron(nodeAvg(n3),kron(speye(n2),nodeAvg(n1))); 
-    A3 = kron(speye(n3),kron(nodeAvg(n2),nodeAvg(n1)));
+    A3 = kron(kron(speye(n3), nodeAvg(n1)),nodeAvg(n2));
     
     return [A1 A2 A3]
 end
@@ -60,12 +60,11 @@ function nodeDiff(n1,n2, dn1, dn2)
     return [G1,G2]
 end
 
-function nodeDiff(n1,n2,n3)
+function nodeDiff(n1,n2,n3,d1,d2,d3)
 
-    G1 = kron(speye(n3+1), kron(speye(n2+1), nodeDiff(n1)))
-    G2 = kron(speye(n3+1), kron(nodeDiff(n2), speye(n1+1)))
-    G3 = kron(nodeDiff(n3), kron(speye(n2+1), speye(n1+1)))
-
+    G1 = kron(speye(n3+1), kron(speye(n2+1), nodeDiff(n1, d1)))
+    G2 = kron(speye(n3+1), kron(nodeDiff(n2,d2), speye(n1+1)))
+    G3 = kron(nodeDiff(n3,d3), kron(speye(n1+1), speye(n2+1)))
 
     return [G1,G2,G3]
 end 
@@ -73,6 +72,6 @@ end
 function helmholtzNeumann(Av, AvE, G, V, rho, w_sqr, m)
     # Returns the helmholtz operator for dirichlet boundary conditions.
    
-    H = G'*diagm(AvE'*(rho.*V))*G + diagm(Av'*(w_sqr*V.*m))
+    H = G'*spdiagm(AvE'*(rho.*V))*G + spdiagm(Av'*(w_sqr*V.*m))
     return H
 end 

@@ -1,0 +1,121 @@
+Abstract
+
+Many physical systems are modelled mathematically by PDE's which require numerical methods to solve. An accurate computational model hinges on a discrete representation of both the data model and the differential operators. This manuscript describes the discretization of the Helmholtz equation in 1,2 and 3-D dimensions, and provides documentation for the corresponding software
+
+Introduction
+
+The Helmholtz equation is ubiquitous across many fields of science as it models the spatial component of the wave equation. In particular interest to author, the Helmholtz equation is used to model the physics of seismic p-waves
+(insert helmholtz equation)
+where ..... 
+
+The process of generating a synthetic seismic wavefield given an estimated model of the earth is called forward modelling, and comparing a synthetic wave field to the data from a seismic survey can provide information on the accuracy of the earth model. Minimizing the data misfit WRT the model is the basis of Full-Waveform Inversion (FWI), which is a computationally intensive method of providing high resolution images of the subsurface.
+
+This manuscript first describes the weak-form discretization of the Helmholtz equation in 1, 2, and 3-D dimensions, then describes the implementation in a unit-tested library written in JULIA. The convergence of the discrete problem is demonstrated using the method of fictitious sources before it is applied to the Marmousi velocity model. The paper concludes with plans for future work.
+
+
+Discretization
+
+The strong form of the Helmholtz equation (ref) imposes smoothness constraints on the derivatives U, which can be relaxed by the weak-form representation
+
+(Weak form equation)
+
+where f and g and .......
+
+Integrating by parts, and choosing a Neumann boundary condition allows () to be written as .....
+
+At this point we perform the discretization, choosing u, q to be defined on nodes of a grid and the model parameters to be described on the cell centres. The integrals can be discretized as follows:
+
+(summation form)
+
+which can be simplified to ...
+matrix form
+
+where V=, G=, Av=, Ave=
+
+The discretized weak-form can now be simplified to a expression independent of the test functions f and g.
+
+(final version)
+
+
+Software Development
+
+This section documents the JULIA implementation of the above operators in 1, 2, and 3-D, and describes the software contained at github.com/bbougher
+
+	Julia
+	
+The JULIA programming language is relatively new paradigm for scientific computing, and this project served as my introduction. Built from the ground up for scientific computing, JULIA makes use of just-in-time compilation and optionally static typing to offer near fortran/c speeds while maintaining a high-level user-friendly syntax. Although outside the scope of this project, Julia offers interoperability with other languages and a framework for high-performance parallel computing.
+	
+	Operators
+The file operators.jl contains functions for creating gradient, node averaging, and edge averaging matrices. Each function can generate 1,2, or 3-D operators depending on the way they are called. 
+
+Av Operator
+Operates on a flattened data array, the Av operator will average each node on a cell to yield an average value at the cell centre. It will average an (n+1,n2+1, n3+1) sized nodal data set to an nxnxn dataset described at cell centers.
+
+1D
+
+2D
+
+3D
+
+G Operator
+Operates on data described on the nodes, the gradient operator subtracts adjacent nodes and divides by the nodal spacing, producing a partial derivative estimate at the centre of each cell edge. 
+
+1D
+
+2D
+
+3D
+
+Ave Operator
+The Ave operator averaging of cell edges of a vector field to cell centres and then applies an identity dot product (sums the components). The output of the Ave is nXnXn cell centred data.
+
+1D
+identity
+
+2D
+krons
+
+3D
+krons
+	
+
+	Unit tests
+The operators were developed using test-driven development, a development flow where tests are written before the functions. It encourages the problem to be broken up into testable modules, and makes it possible to isolate errors when working on larger integrated projects. When all of the tests passed, you can assert a higher level of confidence that the code is less probable to contain bugs. Tests were written by comparing simple data with manual truth calculations to the output of each operator. These unit tests were essential for understanding some of the complicated indexing for higher dimensional averaging. Running the file operators_test.jl will run each test and notify the user of any failures.
+	
+
+Method of Fictitious Sources
+
+Although each operator is unit-tested to a level of confidence, the full Helmholtz solution was tested using the method of fictitious sources [ref eldad book]. The method requires an arbitrary choice of U that satisfies the Neumann condition, then applying the Helmholtz equation to calculate a fictitious source, q. Using a and the discrete Helmholtz operator to solve for U, we can compare to the initial analytic function. Discretization theory predicts error that is O(h^2), so doubling the resolution results in a a factor four decrease in error. The following figures demonstrate this result for 1D, 2D, 3D implementations.
+	
+	1D
+	u=cos(pix)
+	
+	Comparison figure
+	
+	convergence
+	
+	2D
+	u = cos(pix) + cos(piy)
+	
+	comparison figure
+	
+	convergence
+	
+	3D
+	u = cos(pix) + cos(piy)
+	
+	comparison figure
+	
+	convergence
+	
+	
+	
+Results
+	Marmousi Model
+	
+	
+	
+Future Work
+	Wave Equation
+	Sensitivities 
+	FWI

@@ -91,26 +91,24 @@ function nodeDiff2D_test()
 
     test_grad = G*nodes[:]
 
-    @test test_grad == grad 
+    @test test_grad == grad
+    return
 end 
 
 function nodeDiff3D_test()
 
-    # first test it on a single element
-    cube = zeros(2,2,2)
-    cube[:;1;1] = [1 2]
-    cube[:;2;1] = [1 3]
-    cube[:;1;2] = [1 4]
-    cube[:;2;2] = [1 5]
+    # first test it a 2X2 cube
+    cube = [i for i in 1:27]
+    dx,dy,dz = .1,.2,.3
+    G = nodeDiff(2,2,2, dx,dy,dz)
 
-    G = nodeDiff(1,1,1)
-
-    truth_grad = [1, 2, 3, 4, 0, 1, 0, 1, 0, 2, 0, 2]
     
-    grad = G * cube[:]
+    truth_grad = [ones(2*3*3)/dx, 3*ones(2*3*3)/dy, 9*ones(2*3*3)/dz]
+    
+    grad = G * cube
 
-    @test truth_grad == grad
- 
+    @test_approx_eq truth_grad  grad
+    return
 end 
 
 function edgeAvg2D_test()
@@ -121,36 +119,37 @@ function edgeAvg2D_test()
     y_edge = [[7,8,9] [10,11,12]]
     edges = [x_edge[:], y_edge[:]]
 
-    truth = [(1+3)/2 + (7+8)/2, (2+4)/2 + (8+9)/2, (3+5)/2 + (10+11)/2,
-             (4+6)/2 + (11+12)/2]
+
 
     AvE = edgeAvg(n1,n2)
 
     test = AvE * edges
 
-    @test_approx_eq test truth
+     truth = [(1+3)/2 + (7+8)/2, (2+4)/2 + (8+9)/2, (3+5)/2 + (10+11)/2,
+              (4+6)/2 + (11+12)/2]
     
-  
-
+    @test_approx_eq test truth
+    return
 end 
 
 
 function edgeAvg3D_test()
 
-    n1,n2, n3 = 1,1,1
+    # first test it a 2X2 cube
+    cube = [i for i in 1:27]
+    dx,dy,dz = .1,.2,.3
     
-    # Make an element, take the derivitive, then average the edge to test
-    # dimensions
-    cube = rand(n1+1,n2+1,n3+1)
+    G = nodeDiff(2,2,2,dx,dy,dz)
+    grad = G * cube
 
-    G = nodeDiff(n1,n2,n3)
+    AvE = edgeAvg(2,2,2)
+    
+    truth = ones(2*2*2) * (1/dx) + 3*ones(2*2*2)*(1/dy) + 9*ones(2*2*2)*(1/dz)
+    test = AvE * grad
 
-    grad_cube = G*cube[:]
-
-    AvE = edgeAvg(n1,n2,n3)
-    avg_grad_cube = AvE * grad_cube
-
-    @test_approx_eq avg_grad_cube mean(grad_cube[:])
+    @test_approx_eq test truth
+    
+    
 end
     
 
@@ -186,7 +185,7 @@ function helmholtz1D_check(n)
     # we are solving Au=q for u
    
     LS = helmholtzNeumann(Av, AvE, G,V,rho_cell, w_sqr, m_cell)
-    RS = diagm(Av'*V)*q
+    RS = spdiagm(Av'*V)*q
     u_test = LS\RS
 
     # test that convergence is O(dx)
@@ -213,7 +212,7 @@ function helmholtz1D_converge()
 
     # Test that when halfing the grid size we converge to a true answer
     # in steps of O(h^2)
-    @test_approx_eq_eps rate ones(nsteps-1)*4 0.7
+    @test_approx_eq_eps rate[end] 4 0.3
 end
     
 
@@ -227,7 +226,7 @@ function helmholtz2D_check(n1,n2)
 
     # Model
     w_sqr = 1.0
-    m = randn((n1+1)*(n2+1)).^2
+    m = linspace(1,50, (n1+1)*(n2+1))
     rho = ones((n1+1)*(n2+1)).^2
 
     # truth data
@@ -250,18 +249,16 @@ function helmholtz2D_check(n1,n2)
     # we are solving Au=q for u
     H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
     LS = H
-    RS = diagm(Av'*V)*q
+    RS = spdiagm(Av'*V)*q
 
     u_test = LS\RS
 
     #@test_approx_eq_eps u_test u_truth[:] d1*d2
     return mean(abs(u_test-u_truth[:]))
     
-end 
-
+end
 
 function helmholtz2D_converge()
-
     n = [4,8,16,32,64]
 
     error = zeros(5)
@@ -272,43 +269,80 @@ function helmholtz2D_converge()
 
     rate = error[1:end-1]./ error[2:end]
 
+    @test_approx_eq_eps rate[end] 4.0 .3
+end
+
+function helmholtz3D_converge()
+    n = [4,8,16,32,64]
+
+    error = zeros(5)
+    
+    for i in 1:5
+        error[i] = helmholtz3D_check(n[i],n[i], n[i])
+    end
+
+    rate = error[1:end-1]./ error[2:end]
+
+    @test_approx_eq_eps rate[end] 4.0 .3
 end
     
-function helmholtz3D()
-    
-    n1,n2, n3 = 10,12, 14
+function helmholtz3D_check(n1,n2,n3)
 
-    w_sqr = 1
-    m = ones(n1,n2,n3)
-    rho = ones(n1,n2, n3)
-    q = zeros(n1+1,n2+1, n3+1)
-    q[n1/2, n2/2, n3/2] = 1.0
-        
+    x = linspace(0,1,n1+1)
+    y = linspace(0,1,n2+1)
+    z = linspace(0,1,n3+1)
+
+    d1 = x[2]-x[1]
+    d2 = y[2]-y[1]
+    d3 = z[2]-z[1]
+
+    # Model
+    w_sqr = 1.0
+    m = linspace(1,100,(n1+1)*(n2+1)*(n3+1)).^2
+    rho = ones((n1+1)*(n2+1)*(n3+1)).^2
+
+    # truth data
+    u_truth = zeros(n1+1,n2+1, n3+1)
+    for i in 1:n1+1
+        for j in 1:n2+1
+            for k in 1:n3+1
+                u_truth[i,j,k] = cos(pi*x[i]) + cos(pi*y[j]) + cos(pi*z[k])
+            end 
+        end
+    end 
+ 
+    q = (pi^2*rho.*u_truth[:]) +(w_sqr*m.*u_truth[:])
+    
+
     # Make all operators
     Av = nodeAvg(n1,n2,n3)
     AvE = edgeAvg(n1,n2,n3)
-    G = nodeDiff(n1,n2,n3)
+    G = nodeDiff(n1,n2,n3,
+                 d1,d2,d3)
+    
+    V = ones(n1*n2*n3) * d1*d2*d3
 
     # we are solving Au=q for u
-    A = G'*diagm(AvE'*rho[:])*G + w_sqr*diagm(Av'm[:])
+    H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
+    LS = H
+    RS = spdiagm(Av'*V)*q
 
-    # solve it
-    u = A\q[:]
-    u = reshape(u,n1+1, n2+1, n3+1)
-    return
+    u_test = LS\RS
+
+    return mean(abs(u_test-u_truth[:]))
 end 
     
 nodeAvg1D_test()
 nodeAvg2D_test()
-#nodeAvg3D_test()
+nodeAvg3D_test()
 
 edgeAvg2D_test()
-#edgeAvg3D_test()
+edgeAvg3D_test()
 
 nodeDiff1D_test()
 nodeDiff2D_test()
-#nodeDiff3D_test()
+nodeDiff3D_test()
 
 helmholtz1D_converge()
 helmholtz2D_converge()
-#helmholtz3D()
+helmholtz3D_converge()
