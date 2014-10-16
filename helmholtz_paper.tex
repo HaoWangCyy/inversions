@@ -73,10 +73,10 @@ The Ave operator averaging of cell edges of a vector field to cell centres and t
 identity
 
 2D
-krons
+kron
 
 3D
-krons
+kron
 	
 
 	Unit tests
@@ -102,7 +102,7 @@ Although each operator is unit-tested to a level of confidence, the full Helmhol
 	convergence
 	
 	3D
-	u = cos(pix) + cos(piy)
+	u = cos(pix) + cos(piy) + cos(piz)
 	
 	comparison figure
 	
@@ -112,6 +112,12 @@ Although each operator is unit-tested to a level of confidence, the full Helmhol
 	
 Results
 	Marmousi Model
+	
+The marmousi model (ref) is a classic 2D earth model that is often used for benchmark tests and algorithm prototypes. The result of the discrete Helmholtz model on the Marmousi dataset is shown for qualitative assessment of the discrete solution.
+
+marmousi
+helmholtz
+	
 	
 	
 	
