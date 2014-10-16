@@ -19,6 +19,7 @@ function nodeAvg1D_test()
 
 end
 
+
 function nodeAvg2D_test()
 
     nodes = [1 2 3 4; 5 6 7 8; 9 10 11 12]'
@@ -66,9 +67,10 @@ function nodeDiff1D_test()
 
     # Make  test vector
     d = [i for i in 0:9].^2
-    truth = [d[i+1] - d[i] for i in 1:9]
+    truth = [d[i+1] - d[i] for i in 1:9]/2.
 
-    Av = nodeDiff(9)
+    dn = 2.0
+    Av = nodeDiff(9, dn)
 
     test = Av*d
     @test test==truth 
@@ -77,14 +79,15 @@ end
 function nodeDiff2D_test()
 
     n1,n2 =  3,2
+    dn1,dn2 = .1,.2
     # Make the test data
-    nodes = [1 2 3 4; 5 6 7 8; 9 10 11 12]'
+    nodes = [1,2,3,4,5,6,7,8,9,10,11,12]
 
     grad = zeros(n1*n2*2)
 
-    grad = [ones(3*3), ones(2*4)*4]
+    grad = [ones(3*3)/dn1, ones(2*4)*4/dn2]
 
-    G = nodeDiff(n1,n2)
+    G = nodeDiff(n1,n2, dn1, dn2)
 
     test_grad = G*nodes[:]
 
@@ -112,20 +115,23 @@ end
 
 function edgeAvg2D_test()
 
-    n1,n2 = 1,1
+    n1,n2 = 2,2
+
+    x_edge = [[1,2] [3,4] [5,6]]
+    y_edge = [[7,8,9] [10,11,12]]
+    edges = [x_edge[:], y_edge[:]]
+
+    truth = [(1+3)/2 + (7+8)/2, (2+4)/2 + (8+9)/2, (3+5)/2 + (10+11)/2,
+             (4+6)/2 + (11+12)/2]
+
+    AvE = edgeAvg(n1,n2)
+
+    test = AvE * edges
+
+    @test_approx_eq test truth
     
-    # Make an element, take the derivitive, then average the edge to test
-    # dimensions
-    cube = rand(n1+1,n2+1)
+  
 
-    G = nodeDiff(n1,n2)
-
-    grad_cube = G*cube[:]
-
-    AvE = edgeAvg(n1, n2)
-    avg_grad_cube = AvE * grad_cube
-
-    @test_approx_eq avg_grad_cube mean(grad_cube)
 end 
 
 
@@ -155,6 +161,7 @@ function helmholtz1D_check(n)
     # Make the mesh size
     n_nodes = n + 1
     n_cells = n
+    dx = 0.1
 
     rho = ones(n_nodes)
     x = linspace(0,1,n_nodes)
@@ -170,7 +177,7 @@ function helmholtz1D_check(n)
     # Make all operators
     Av = nodeAvg(n_cells)
     AvE = edgeAvg(n_cells)
-    G = nodeDiff(n_cells)
+    G = nodeDiff(n_cells, dx)
     V = ones(n_cells) * dx
 
     # move to cell centers
@@ -248,7 +255,7 @@ function helmholtz1D_converge()
 
     for i in 1:nsteps
 
-        error[i] = helmholtz1D(cells[i])
+        error[i] = helmholtz1D_check(cells[i])
     end
     
     rate = error[1:end-1]./error[2:end]
@@ -259,28 +266,9 @@ function helmholtz1D_converge()
 end
     
 
-function helmholtz2D()
+function helmholtz2D_check()
 
-    n1,n2 = 10,12
 
-    w_sqr = 1
-    m = ones(n1,n2)
-    rho = ones(n1,n2)
-    q = zeros(n1+1,n2+1)
-    q[n1/2, n2/2] = 1.0
-        
-    # Make all operators
-    Av = nodeAvg(n1,n2)
-    AvE = edgeAvg(n1,n2)
-    G = nodeDiff(n1,n2)
-
-    # we are solving Au=q for u
-    A = G'*diagm(AvE'*rho[:])*G + w_sqr*diagm(Av'm[:])
-
-    # solve it
-    u = A\q[:]
-
-    u = reshape(u,n1+1, n2+1)
     return
 end 
 
@@ -310,15 +298,15 @@ end
     
 nodeAvg1D_test()
 nodeAvg2D_test()
-nodeAvg3D_test()
+#nodeAvg3D_test()
 
 edgeAvg2D_test()
-edgeAvg3D_test()
+#edgeAvg3D_test()
 
 nodeDiff1D_test()
 nodeDiff2D_test()
-nodeDiff3D_test()
+#nodeDiff3D_test()
 
 helmholtz1D_converge()
-helmholtz2D()
-helmholtz3D()
+#helmholtz2D()
+#helmholtz3D()
