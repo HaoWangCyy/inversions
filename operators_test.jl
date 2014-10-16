@@ -161,7 +161,6 @@ function helmholtz1D_check(n)
     # Make the mesh size
     n_nodes = n + 1
     n_cells = n
-    dx = 0.1
 
     rho = ones(n_nodes)
     x = linspace(0,1,n_nodes)
@@ -195,54 +194,6 @@ function helmholtz1D_check(n)
     return mean(abs(u_test-u_truth))
 end
 
-function helmholtz2D_check()
-
-    # Geometry
-    n1=100
-    n2=100
-    x = linspace(0,1,n1+1)
-    y = linspace(0,1,n2+1)
-
-    dx = x[2]-x[1]
-    dy = y[2]-y[1]
-
-    # Model
-    w_sqr = 1.0
-    m = ones(n1+1,n2+1).^2
-    rho = ones(n1+1,n2+1)
-
-    # truth data
-    u_truth = zeros(n1+1,n2+1)
-    for i in 1:n1+1
-        for j in 1:n2+1
-            u_truth[i,j] = cos(pi*x[i]) + cos(pi*y[j])
-        end 
-    end
-    
-    q = -(pi^2*rho.*u_truth) +(w_sqr*m.*u_truth)
-
-
-    # Make all operators
-    Av = nodeAvg(n1,n2)
-    AvE = edgeAvg(n1,n2)
-    G = nodeDiff(n1,n2)
-    V = ones(n1*n2) * dx*dy
-    
-    # we are solving Au=q for u
-    H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
-    LS = H
-    RS = diagm(Av'*V)*q[:]
-
-    u_test = reshape(LS\RS, n1+1, n2+1)
-    u_test_new = zeros(n1+1, n2+1)
-
-    for i in 1:(n1+1)
-        for j in 1:(n2+1)
-        u_test_new[i,j] = u_test[end-(i-1), end-(j-1)]
-        end
-    end
-    return
-end
 
 function helmholtz1D_converge()
 
@@ -262,16 +213,67 @@ function helmholtz1D_converge()
 
     # Test that when halfing the grid size we converge to a true answer
     # in steps of O(h^2)
-    @test_approx_eq_eps rate ones(nsteps-1)*4 0.5
+    @test_approx_eq_eps rate ones(nsteps-1)*4 0.7
 end
     
 
-function helmholtz2D_check()
+function helmholtz2D_check(n1,n2)
+    # Geometry
+    x = linspace(0,1,n1+1)
+    y = linspace(0,1,n2+1)
 
+    d1 = x[2]-x[1]
+    d2 = y[2]-y[1]
 
-    return
+    # Model
+    w_sqr = 1.0
+    m = randn((n1+1)*(n2+1)).^2
+    rho = ones((n1+1)*(n2+1)).^2
+
+    # truth data
+    u_truth = zeros(n1+1,n2+1)
+    for i in 1:n1+1
+        for j in 1:n2+1
+            u_truth[i,j] = cos(pi*x[i]) + cos(pi*y[j])
+        end 
+    end
+    
+    q = (pi^2*rho.*u_truth[:]) +(w_sqr*m.*u_truth[:])
+
+    
+    # Make all operators
+    Av = nodeAvg(n1,n2)
+    AvE = edgeAvg(n1,n2)
+    G = nodeDiff(n1,n2, d1, d2)
+    V = ones(n1*n2) * d1*d2
+
+    # we are solving Au=q for u
+    H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
+    LS = H
+    RS = diagm(Av'*V)*q
+
+    u_test = LS\RS
+
+    #@test_approx_eq_eps u_test u_truth[:] d1*d2
+    return mean(abs(u_test-u_truth[:]))
+    
 end 
 
+
+function helmholtz2D_converge()
+
+    n = [4,8,16,32,64]
+
+    error = zeros(5)
+    
+    for i in 1:5
+        error[i] = helmholtz2D_check(n[i],n[i])
+    end
+
+    rate = error[1:end-1]./ error[2:end]
+
+end
+    
 function helmholtz3D()
     
     n1,n2, n3 = 10,12, 14
@@ -308,5 +310,5 @@ nodeDiff2D_test()
 #nodeDiff3D_test()
 
 helmholtz1D_converge()
-#helmholtz2D()
+helmholtz2D_converge()
 #helmholtz3D()
