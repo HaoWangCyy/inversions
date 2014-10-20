@@ -46,12 +46,14 @@ plt.figure()
 plt.subplot(121)
 plt.imshow(u_truth, extent=[0,1,0,1])
 plt.title("U(x,y) analytic")
+plt.xlabel("scale [arbitrary units]")
+plt.ylabel("scale [arbitrary units]")
 plt.subplot(122)
 plt.imshow(u_test, extent = [0,1,0,1])
-
+plt.xlabel("scale [arbitrary units]")
 plt.title("U[x,y] solution")
-
-plt.savefig("figure3.png")
+plt.tight_layout()
+plt.savefig("figure3.eps")
 plt.show()
 # Check the convergence
 nsteps = 10
@@ -73,7 +75,7 @@ plt.plot(cells[2:end].^2,rate)
 plt.xscale("log")
 plt.ylabel("convergence rate")
 plt.xlabel("# of nodes")
-plt.savefig("figure4.png")
+plt.savefig("figure4.eps")
 
 plt.show()
 
