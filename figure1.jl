@@ -53,7 +53,7 @@ plt.ylabel("U[x] solution")
 #plt.ylabel("error [arbitrary units]")
 #plt.tight_layout()
 
-plt.savefig("figure1.eps")
+plt.savefig("figures/figure1.eps")
 # Check the convergence
 nsteps = 10
 error = zeros(nsteps)
@@ -74,7 +74,7 @@ plt.ylim((0,10))
 plt.xscale("log")
 plt.ylabel("convergence rate")
 plt.xlabel("# of nodes")
-plt.savefig("figure2.eps")
+plt.savefig("figures/figure2.eps")
 
 
 
