@@ -1,0 +1,6 @@
+figures
+.juliahistory
+*.aux
+*.out
+*.gz
+*.log
