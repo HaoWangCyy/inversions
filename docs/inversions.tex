@@ -1,22 +1,19 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Journal Article
-% LaTeX Template
-% Version 1.3 (9/9/13)
+% Journal Article LaTeX Template Version 1.3 (9/9/13)
 %
 % This template has been downloaded from:
 % http://www.LaTeXTemplates.com
 %
-% Original author:
-% Frits Wenneker (http://www.howtotex.com)
+% Original author: Frits Wenneker (http://www.howtotex.com)
 %
-% License:
-% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+% License: CC BY-NC-SA 3.0
+% (http://creativecommons.org/licenses/by-nc-sa/3.0/)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%----------------------------------------------------------------------------------------
-%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
-%----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
+% PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+% ----------------------------------------------------------------------------------------
 
 \documentclass[twoside]{article}
 
@@ -28,7 +25,8 @@
 
 \usepackage[hmarginratio=1:1,top=32mm,columnsep=20pt]{geometry} % Document margins
 \usepackage{multicol} % Used for the two-column layout of the document
-\usepackage[hang, small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above floats in tables or figures
+\usepackage[hang,
+small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above floats in tables or figures
 \usepackage{booktabs} % Horizontal rules in tables
 \usepackage{float} % Required for tables and figures in the multi-column environment - they need to be placed in specific locations with the [H] (e.g. \begin{table}[H])
 
@@ -57,23 +55,23 @@
 \fancyfoot[RO,LE]{\thepage} % Custom footer text
 
 \usepackage{amsmath}
-%----------------------------------------------------------------------------------------
-%	TITLE SECTION
-%----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
+% TITLE SECTION
+% ----------------------------------------------------------------------------------------
 
 \title{\vspace{-15mm}\fontsize{24pt}{10pt}\selectfont\textbf{Discretization of the Helmholtz equation}} % Article title
 
 \author{
-\large
-\textsc{Ben Bougher}\\[2mm] % Your name
-\normalsize Department of Earth, Ocean, and Atmospheric Science\\
-\normalsize University of British Columbia \\ % Your institution
-\normalsize \href{mailto:bbougher@eos.ubc.ca}{bbougher@eos.ubc.ca} % Your email address
-\vspace{-5mm}
+  \large
+  \textsc{Ben Bougher}\\[2mm] % Your name
+  \normalsize Department of Earth, Ocean, and Atmospheric Science\\
+  \normalsize University of British Columbia \\ % Your institution
+  \normalsize \href{mailto:bbougher@eos.ubc.ca}{bbougher@eos.ubc.ca} % Your email address
+  \vspace{-5mm}
 }
 \date{}
 
-%----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
 
 \begin{document}
 
@@ -81,286 +79,390 @@
 
 \thispagestyle{fancy} % All pages have headers and footers
 
-%----------------------------------------------------------------------------------------
-%	ABSTRACT
-%----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
+% ABSTRACT
+% ----------------------------------------------------------------------------------------
 
 \begin{abstract}
 
-Many physical systems are modelled mathematically by PDE's that require numerical solutions. An accurate computational model hinges on a discrete representation of both the data model and the differential operators. 
-This manuscript describes the discretization of the Helmholtz equation in 1,2 and 3-D dimensions, and provides documentation for the corresponding JULIA implementation. 
+  Many physical systems are modelled mathematically by PDE's that
+  require numerical solutions. An accurate computational model hinges
+  on a discrete representation of both the data model and the
+  differential operators.  This manuscript describes the
+  discretization of the Helmholtz equation in 1,2 and 3 dimensions,
+  and provides documentation for the corresponding JULIA
+  implementation.
 
 \end{abstract}
 
-%----------------------------------------------------------------------------------------
-%	ARTICLE CONTENTS
-%----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
+% ARTICLE CONTENTS
+% ----------------------------------------------------------------------------------------
 
 \begin{multicols}{2} % Two-column layout throughout the main article text
 
-\section{Introduction}
+  \section{Introduction}
 
-The Helmholtz equation is ubiquitous across many fields of science as it models the spatial component of the wave equation. In particular interest to the author, the Helmholtz equation is used to model the physics of seismic p-waves
-\begin{equation}
-\label{eq:helmholtz}Av
- \nabla \cdot \rho \nabla U + \omega ^2 mU = q
-\end{equation}
-where $\rho$ is the density of the earth, $U$ is the scalar p-wavefield,  $\omega = 2\pi f$, $q$ is the source term, and
-\begin{equation}
-\label{eq:mc}
-m=1/c^2
-\end{equation}
-where $c$ is the p-wave velocity profile of the earth.
+  The Helmholtz equation is ubiquitous across many fields of science
+  as it models the spatial component of the wave equation. In
+  particular interest to the author, the Helmholtz equation is used to
+  model the physics of seismic p-waves
+  \begin{equation}
+    \label{eq:helmholtz}Av
+    \nabla \cdot \rho \nabla U + \omega ^2 mU = q
+  \end{equation}
+  where $\rho$ is the density of the earth, $U$ is the scalar
+  p-wavefield, $\omega = 2\pi f$, $q$ is the source term, and
+  \begin{equation}
+    \label{eq:mc}
+    m=1/c^2
+  \end{equation}
+  where $c$ is the p-wave velocity profile of the earth.
 
-Seismic imaging is the process of reconstructing the tomography of the subsurface from reflected waves measured at the surface. If the velocity profile of the earth is known, seismic images are created by migrating wavelet arrivals in the measured wavefield to the geospatial location of the reflector. Unfortunately, velocity profiles for seismic acquisitions are sparsely sampled and require time-consuming human estimates in order to form a useful image. Forward modelling the wavefield $U$ from the estimated velocity model $m$ and comparing to the measured field can provide insight into the accuracy of the estimate. Minimizing this data misfit with respect to the velocity model is the basis of Full-Waveform Inversion (FWI), a computationally-intensive method of providing high-resolution velocity models of the subsurface.
+  Seismic imaging is the process of reconstructing the tomography of
+  the subsurface from reflected waves measured at the surface. If the
+  velocity profile of the earth is known, seismic images are created
+  by migrating wavelet arrivals in the measured wavefield to the
+  geospatial location of the reflector. Unfortunately, velocity
+  profiles for seismic acquisitions are sparsely sampled and require
+  time-consuming human estimates in order to form a useful
+  image. Forward modelling the wavefield $U$ from the estimated
+  velocity model $m$ and comparing to the measured field can provide
+  insight into the accuracy of the estimate. Minimizing this data
+  misfit with respect to the velocity model is the basis of
+  Full-Waveform Inversion (FWI), a computationally-intensive method of
+  providing high-resolution velocity models of the subsurface.
 
-This manuscript first reviews the weak-form discretization of the Helmholtz equation, then describes the Julia implementation in 1, 2, and 3-D. The convergence of the discretization is first demonstrated using the method of fictitious sources, then the discrete Helmholtz solver is tested qualitatively on the Marmousi model. The paper concludes with plans for future work.
+  This manuscript first reviews the weak-form discretization of the
+  Helmholtz equation, then describes the Julia implementation in 1, 2,
+  and 3-D. The convergence of the discretization is first demonstrated
+  using the method of fictitious sources, then the discrete Helmholtz
+  solver is tested qualitatively on the Marmousi model. The paper
+  concludes with plans for future work.
 
 
-%------------------------------------------------
+  % ------------------------------------------------
 
 \section{Discretization}
-The strong form of the Helmholtz equation, given in equation  \ref{eq:helmholtz}, imposes smoothness constraints on the derivatives of $U$, which can be relaxed using the weak-form representation:
+The strong form of the Helmholtz equation, given in equation
+\ref{eq:helmholtz}, imposes smoothness constraints on the derivatives
+of $U$, which can be relaxed using the weak-form representation:
 \begin{equation}
-\label{eq:helmholtz_soft_U}
-\int\limits_V f\nabla \cdot \rho edv+ \int\limits_V f\omega ^2 mUdv= \int\limits_V fqdv
+  \label{eq:helmholtz_soft_U}
+  \int\limits_V f\nabla \cdot \rho edv+ \int\limits_V f\omega ^2 mUdv= \int\limits_V fqdv
 \end{equation}
 \begin{equation}
-\label{eq:helmholtz_soft_e}
-\int\limits_V g\nabla Udv = \int\limits_V gedv
+  \label{eq:helmholtz_soft_e}
+  \int\limits_V g\nabla Udv = \int\limits_V gedv
 \end{equation}
 where
 \begin{equation}
-\label{eq:helmholtz_e}
- e= \nabla U 
+  \label{eq:helmholtz_e}
+  e= \nabla U 
 \end{equation}
-and $f$ and $g$ are arbitrary smooth test functions. 
-Integrating by parts and applying a zero Neumann boundary condition yields:
+and $f$ and $g$ are arbitrary smooth test functions.  Integrating by
+parts and applying a zero Neumann boundary condition yields:
 \begin{equation}
-\label{eq:U_parts}
--\int\limits_V \rho e \cdot \nabla fdv +  \int\limits_V f\omega ^2 mUdv= \int\limits_V fqdv
+  \label{eq:U_parts}
+  -\int\limits_V \rho e \cdot \nabla fdv +  \int\limits_V f\omega ^2 mUdv= \int\limits_V fqdv
 \end{equation}
 \begin{equation}
-\label{eq:e_parts}
--\int\limits_V U\nabla gdv=\int\limits_V gedv
+  \label{eq:e_parts}
+  -\int\limits_V U\nabla gdv=\int\limits_V gedv
 \end{equation}
-The integrals in \ref{eq:U_parts} and \ref{eq:e_parts} can be discretized by summing the estimated integral of each element of a mesh of size $N$. The integral of each element is approximated by calculating the value at the cell centre and multiplying by the cell volume. 
+The integrals in \ref{eq:U_parts} and \ref{eq:e_parts} can be
+discretized by summing the estimated integral of each element of a
+mesh of size $N$. The integral of each element is approximated by
+calculating the value at the cell centre and multiplying by the cell
+volume.
 
-Sampling $U$, $q$, $m$, and $f$ at the nodes of the cells, $e$ and $g$ at the cell edges, and the model parameters $\rho$ and $m$ at cell centres yields:
+Sampling $U$, $q$, $m$, and $f$ at the nodes of the cells, $e$ and $g$
+at the cell edges, and the model parameters $\rho$ and $m$ at cell
+centres yields:
 \begin{align}
-s^T V \rho \bigodot Av^e &(e\bigodot Gf) + \omega ^2 s^T Avf \bigodot U \nonumber \\
-\label{eq:discrete_1} 
-&= VAv(f\bigodot q)
+  s^T V \rho \bigodot Av^e &(e\bigodot Gf) + \omega ^2 s^T Avf \bigodot U \nonumber \\
+  \label{eq:discrete_1}
+  &= VAv(f\bigodot q)
 \end{align}
 \begin{equation}
-\label{eq:discrete_2}
-s^T VAv^v (U\bigodot Gf) = s^T VAv^v (g\bigodot q)
+  \label{eq:discrete_2}
+  s^T VAv^v (U\bigodot Gf) = s^T VAv^v (g\bigodot q)
 \end{equation}
 where
 \begin{compactitem}
 \item $s^T$ is a summation vector
 \item $V$ is a volume scaling operator
-\item $Av^e$ is an averaging operator which averages a vector field from edges to cell centres and sums the components	
-\item $Av$ is an averaging operator that averages cell nodes to cell centres	
-\item $G$ is a gradient operator that performs a scaled difference of adjacent nodes
-\item $Av^v$ averages vector fields from edges to cell centres	
-\item $U$, $e$, $\rho$, $m$, $f$, and $g$ are flattened representations of the data matrices
+\item $Av^e$ is an averaging operator which averages a vector field
+  from edges to cell centres and sums the components
+\item $Av$ is an averaging operator that averages cell nodes to cell
+  centres
+\item $G$ is a gradient operator that performs a scaled difference of
+  adjacent nodes
+\item $Av^v$ averages vector fields from edges to cell centres
+\item $U$, $e$, $\rho$, $m$, $f$, and $g$ are flattened
+  representations of the data matrices
 \item $\bigodot$ is the Hadarmard product
 \end{compactitem}
-Equations \ref{eq:discrete_1} and \ref{eq:discrete_2} can be simplified to one expression independent of the test functions $f$ and $g$:
+Equations \ref{eq:discrete_1} and \ref{eq:discrete_2} can be
+simplified to one expression independent of the test functions $f$ and
+$g$:
 \begin{align}
-\label{eq:discrete_helmholtz}
-G^Tdiag(Av^eV\rho)&GU + diag(Av^Tw^2m)U \nonumber \\ = 
-&-diag(Av^Tv^T)q
+  \label{eq:discrete_helmholtz}
+  G^Tdiag(Av^eV\rho)&GU + diag(Av^Tw^2m)U \nonumber \\ =
+  &-diag(Av^Tv^T)q
 \end{align}
 
-%------------------------------------------------
+% ------------------------------------------------
 
 \section{Software}
-This section documents the JULIA implementation of the discrete Helmholtz equation in 1, 2, and 3-D. Unit-tested source code and figure reproduction scripts can be found at \url{https://www.github.com/ben-bougher/inversions}. 
+This section documents the JULIA implementation of the discrete
+Helmholtz equation in 1, 2, and 3-D. Unit-tested source code and
+figure reproduction scripts can be found at
+\url{https://www.github.com/ben-bougher/inversions}.
 
 \subsection*{JULIA}
-The JULIA programming language is a relatively new paradigm for scientific computing, and this project served as the author's first date with JULIA. Built from the ground up for scientific computing, JULIA makes use of just-in-time compilation and optional static typing to offer near fortran/C speeds while maintaining a high-level user-friendly syntax. Julia offers direct interoperability with other languages and although out of this project scope; a framework for high-performance parallel computing. Overall JULIA was an intuitive language to learn; it has reasonable online documentation and it's easy integration with Python allowed direct use of familiar plotting libraries.
+The JULIA programming language is a relatively new paradigm for
+scientific computing, and this project served as the author's first
+date with JULIA. Built from the ground up for scientific computing,
+JULIA makes use of just-in-time compilation and optional static typing
+to offer near fortran/C speeds while maintaining a high-level
+user-friendly syntax. Julia offers direct interoperability with other
+languages and although out of this project scope; a framework for
+high-performance parallel computing. Overall JULIA was an intuitive
+language to learn; it has reasonable online documentation and it's
+easy integration with Python allowed direct use of familiar plotting
+libraries.
 
 \subsection*{Operators}
-The file operators.jl contains functions for creating gradient, node averaging, and edge averaging matrices for 1,2, or 3-D data. All operators assume multi-dimensional data$(mnl)$ is flattened into Fortran-ordered $N=mnl$ sized vectors. 
+The file operators.jl contains functions for creating gradient, node
+averaging, and edge averaging matrices for 1,2, or 3-D data. All
+operators assume multi-dimensional data$(mnl)$ is flattened into
+Fortran-ordered $N=mnl$ sized vectors.
 \subsection*{$Av$ operator}
-The $Av$ operator will average each node on a cell to yield an average value at the cell centre. The 1-D case 
+The $Av$ operator will average each node on a cell to yield an average
+value at the cell centre. The 1-D case
 
 \begin{equation}
-\nonumber
-Av_{m,m +1}^1 = \frac{1}{2}
- \begin{pmatrix}
-  1 & 1 & 0 & \cdots & \cdots & 0 \\
-  0 & 1 & 1 & 0 & \cdots  & 0 \\
-  \vdots   && \ddots & \ddots  \\
-  0 & 0 & \cdots \cdots & \cdots & 1 & 1
- \end{pmatrix}
- \end{equation}
- can be generalized to 2-D
+  \nonumber
+  Av_{m,m +1}^1 = \frac{1}{2}
+  \begin{pmatrix}
+    1 & 1 & 0 & \cdots & \cdots & 0 \\
+    0 & 1 & 1 & 0 & \cdots  & 0 \\
+    \vdots   && \ddots & \ddots  \\
+    0 & 0 & \cdots \cdots & \cdots & 1 & 1
+  \end{pmatrix}
+\end{equation}
+can be generalized to 2-D
 \begin{equation}
-\nonumber
- Av_{M, M'}^2 = kron(Av_{n, n+1}^1, Av_{m, m+1}^1)
- \end{equation}
+  \nonumber
+  Av_{M, M'}^2 = kron(Av_{n, n+1}^1, Av_{m, m+1}^1)
+\end{equation}
 and 3-D
 \begin{equation}
-\nonumber
-Av_{N,N'}^3 = kron(Av_{l, l+1}^1, Av_{M, M'}^2)
- \end{equation}
- where 
- \begin{compactitem}
- \item$M=mn$ is the number of 2-D elements
- \item$M'=(m+1)(n+1)$ is total number of 2-D nodes
- \item$N=mnl$ is the number of 3-D elements
- \item$N'$ is the total number of 3D nodes
- \item$kron()$ is the Kronecker matrix product
- \end{compactitem}
+  \nonumber
+  Av_{N,N'}^3 = kron(Av_{l, l+1}^1, Av_{M, M'}^2)
+\end{equation}
+where
+\begin{compactitem}
+\item$M=mn$ is the number of 2-D elements
+\item$M'=(m+1)(n+1)$ is total number of 2-D nodes
+\item$N=mnl$ is the number of 3-D elements
+\item$N'$ is the total number of 3D nodes
+\item$kron()$ is the Kronecker matrix product
+\end{compactitem}
  
 \subsection*{$G$ operator}
-The gradient operator uses cell nodes to calculate the gradient along cell edges. The 1-D case
+The gradient operator uses cell nodes to calculate the gradient along
+cell edges. The 1-D case
 \begin{equation}
-\nonumber
-G_{m,m +1}^1 = \frac{1}{dm}
- \begin{pmatrix}
-  -1 & 1 & 0 & \cdots & \cdots & 0 \\
-  0 & -1 & 1 & 0 & \cdots  & 0 \\
-  \vdots   && \ddots & \ddots  \\
-  0 & 0 & \cdots \cdots & \cdots & -1 & 1
- \end{pmatrix}
- \end{equation}
- can be generalized to 2-D
+  \nonumber
+  G_{m,m +1}^1 = \frac{1}{dm}
+  \begin{pmatrix}
+    -1 & 1 & 0 & \cdots & \cdots & 0 \\
+    0 & -1 & 1 & 0 & \cdots  & 0 \\
+    \vdots   && \ddots & \ddots  \\
+    0 & 0 & \cdots \cdots & \cdots & -1 & 1
+  \end{pmatrix}
+\end{equation}
+can be generalized to 2-D
 \begin{equation}
-\nonumber
- G_{M^*, M'}^2 = 
- \begin{pmatrix}
- kron(I_{n+1}, G_{m, m+1}^1) \\
- kron(G_{n,n+1}^1, I_{m+1})
- \end{pmatrix}
- \end{equation}
+  \nonumber
+  G_{M^*, M'}^2 = 
+  \begin{pmatrix}
+    kron(I_{n+1}, G_{m, m+1}^1) \\
+    kron(G_{n,n+1}^1, I_{m+1})
+  \end{pmatrix}
+\end{equation}
 and 3-D
 \begin{equation}
-\nonumber
-G_{N^*,N'}^3 = 
-\begin{pmatrix}
-kron(I_{l+1}, kron(I_{n+1}, G_{m,m+1}^1)) \\
-kron(I_{l+1}, kron(G_{n,n+1}^1,I_{m+1})) \\
-kron(G_{n,n+1}, kron(I_{m+1}, I_{n+1})) \\
-\end{pmatrix}
+  \nonumber
+  G_{N^*,N'}^3 = 
+  \begin{pmatrix}
+    kron(I_{l+1}, kron(I_{n+1}, G_{m,m+1}^1)) \\
+    kron(I_{l+1}, kron(G_{n,n+1}^1,I_{m+1})) \\
+    kron(G_{n,n+1}, kron(I_{m+1}, I_{n+1})) \\
+  \end{pmatrix}
 \end{equation}
- where 
- \begin{compactitem}
- \item$M^*=m(n+1)+ n(m+1)m$ is the number of 2-D cell edges
- \item$N^*=m(n+1)(l+1) + n(m+1)(l+1) + l(m+1)(n+1)$ is the number of 3-D cell edges
- \end{compactitem}
+where
+\begin{compactitem}
+\item$M^*=m(n+1)+ n(m+1)m$ is the number of 2-D cell edges
+\item$N^*=m(n+1)(l+1) + n(m+1)(l+1) + l(m+1)(n+1)$ is the number of
+  3-D cell edges
+\end{compactitem}
 
  \subsection*{$Av^e$ operator}
-The $Av^e$ operator sums the averages of the parallel edges of cells. The 2-D case
-\begin{equation}
-\nonumber
-Av^{e2}_{M, M^*} = 
-\begin{pmatrix}
-kron(I_{m}, Av_{n,n+1}) \\
-kron(Av_{m, m+1}, I_{n})
-\end{pmatrix}
-^T
-\end{equation}
-can be extended to the 3-D case
-\begin{equation}
-\nonumber
-Av^{e3}_{N, N^*} = 
-\begin{pmatrix}
-kron(Av_{l,l+1},kron(Av_{n,n+1}, I_{m}))\\
-kron(Av_{n,n+1},kron(I_{n}, Av_{m,m+1}))\\
-kron(kron(I_{l}, Av_{m,m+1}), Av_{n,n+1})) 
-\end{pmatrix}
-^T
-\end{equation}
-which reduces to $I_m$ for the 1-D case.
+ The $Av^e$ operator sums the averages of the parallel edges of
+ cells. The 2-D case
+ \begin{equation}
+   \nonumber
+   Av^{e2}_{M, M^*} = 
+   \begin{pmatrix}
+     kron(I_{m}, Av_{n,n+1}) \\
+     kron(Av_{m, m+1}, I_{n})
+   \end{pmatrix}
+   ^T
+ \end{equation}
+ can be extended to the 3-D case
+ \begin{equation}
+   \nonumber
+   Av^{e3}_{N, N^*} = 
+   \begin{pmatrix}
+     kron(Av_{l,l+1},kron(Av_{n,n+1}, I_{m}))\\
+     kron(Av_{n,n+1},kron(I_{n}, Av_{m,m+1}))\\
+     kron(kron(I_{l}, Av_{m,m+1}), Av_{n,n+1}))
+   \end{pmatrix}
+   ^T
+ \end{equation}
+ which reduces to $I_m$ for the 1-D case.
 
 \subsection*{Unit tests}
-The operators were developed using test-driven development,  where unit tests are written before the functions. It encourages the problem to be divided into testable modules and makes it easier to isolate errors when working on larger integrated projects. If all of the tests pass, a higher-level of confidence can be attributed to the code. Tests were generated by comparing simple manual truth calculations to the output of each operator. These unit tests were essential for understanding some of the complicated indexing for higher-dimensional averaging. Running the file $test.jl$ will run each test and notify the user of any failures.
-%------------------------------------------------
+The operators were developed using test-driven development, where unit
+tests are written before the functions. It encourages the problem to
+be divided into testable modules and makes it easier to isolate errors
+when working on larger integrated projects. If all of the tests pass,
+a higher-level of confidence can be attributed to the code. Tests were
+generated by comparing simple manual truth calculations to the output
+of each operator. These unit tests were essential for understanding
+some of the complicated indexing for higher-dimensional
+averaging. Running the file $test.jl$ will run each test and notify
+the user of any failures.
+% ------------------------------------------------
 
 \section{Method of fictitious sources}
-Although each operator is unit-tested to a level of confidence, the full Helmholtz solution was tested using the method of fictitious sources \cite{eldad}. The method requires a choice of an analytic $\hat U$ that satisfies the zero Neumann boundary condition. Applying the Helmholtz equation to $\hat U$ results in a fictitious source, $q$. Solving the discrete Helmholtz equation for $U$ given $q$ should yield $\hat U$ within an error bound. Discretization theory predicts error that is $O(h^2)$, so doubling the resolution results in a convergence rate of 4. Figures \ref{fig:1d_comp} - \ref{fig:3d_conv} show comparisons and convergence rates for 1, 2, and 3-D implementations. Note that the 2-D case resulted in a convergence rate of 2, which is problematic as it doesn't agree with predictions from discretization theory. The 2-D case requires more analysis to determine to if the convergence is indeed correct.
+Although each operator is unit-tested to a level of confidence, the
+full Helmholtz solution was tested using the method of fictitious
+sources \cite{eldad}. The method requires a choice of an analytic
+$\hat U$ that satisfies the zero Neumann boundary condition. Applying
+the Helmholtz equation to $\hat U$ results in a fictitious source,
+$q$. Solving the discrete Helmholtz equation for $U$ given $q$ should
+yield $\hat U$ within an error bound. Discretization theory predicts
+error that is $O(h^2)$, so doubling the resolution results in a
+convergence rate of 4. Figures \ref{fig:1d_comp} - \ref{fig:3d_conv}
+show comparisons and convergence rates for 1, 2, and 3-D
+implementations. Note that the 2-D case resulted in a convergence rate
+of 2, which is problematic as it doesn't agree with predictions from
+discretization theory. The 2-D case requires more analysis to
+determine to if the convergence is indeed correct.
 
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure1.eps}
-\caption{Fictitious source comparison in 1-D using the test field $U(x)=cos(\pi x)$.}
-\label{fig:1d_comp}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure1.eps}
+  \caption{Fictitious source comparison in 1-D using the test field
+    $U(x)=cos(\pi x)$.}
+  \label{fig:1d_comp}
 \end{figure}
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure2.eps}
-\caption{Rate of convergence for doubling the node doubling using the 1-D using the test field $U(x,y)=cos(\pi x)$.}
-\label{fig:1d_conv}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure2.eps}
+  \caption{Rate of convergence for doubling the node doubling using
+    the 1-D using the test field $U(x,y)=cos(\pi x)$.}
+  \label{fig:1d_conv}
 \end{figure}
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure3.eps}
-\caption{Fictitious source comparison in 2-D using the test field $U(x,y)=cos(\pi x)+cos(\pi y)$.}
-\label{fig:2d_comp}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure3.eps}
+  \caption{Fictitious source comparison in 2-D using the test field
+    $U(x,y)=cos(\pi x)+cos(\pi y)$.}
+  \label{fig:2d_comp}
 \end{figure}
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure4.eps}
-\caption{Rate of convergence for node doubling using the 2-D using the test field $U(x,y)=cos(\pi x)+cos(\pi y)$.}
-\label{fig:2d_conv}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure4.eps}
+  \caption{Rate of convergence for node doubling using the 2-D using
+    the test field $U(x,y)=cos(\pi x)+cos(\pi y)$.}
+  \label{fig:2d_conv}
 \end{figure}
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure5.eps}
-\caption{Fictitious source comparison in 3-D using the test field $U(x,y,z)=cos(\pi x)+cos(\pi y)+cos(\pi z)$ at $z=10$.}
-\label{fig:3d_comp}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure5.eps}
+  \caption{Fictitious source comparison in 3-D using the test field
+    $U(x,y,z)=cos(\pi x)+cos(\pi y)+cos(\pi z)$ at $z=10$.}
+  \label{fig:3d_comp}
 \end{figure}
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure6.eps}
-\caption{Rate of convergence for node doubling using the 3-D using the test field $U(x,y,z)=cos(\pi x)+cos(\pi y)+cos(\pi z)$.}
-\label{fig:3d_conv}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure6.eps}
+  \caption{Rate of convergence for node doubling using the 3-D using
+    the test field $U(x,y,z)=cos(\pi x)+cos(\pi y)+cos(\pi z)$.}
+  \label{fig:3d_conv}
 \end{figure}
 
 \section{Marmousi model}
-Since its creation by the Institut Français du Pétrole (IFP) in 1988, the Marmousi model \cite{marmousi} has become the industry standard test data for assessing seismic modelling. The model is based on the North Quenguela trough and its geometry and velocity model yield complex seismic data. 
+Since its creation by the Institut Français du Pétrole (IFP) in 1988,
+the Marmousi model \cite{marmousi} has become the industry standard
+test data for assessing seismic modelling. The model is based on the
+North Quenguela trough and its geometry and velocity model yield
+complex seismic data.
 
-Qualitative results of the discrete Helmholtz solver applied to the Marmousi model are shown in Figure \ref{fig:marmousi} and Figure \ref{fig:marmousi_helmholtz}. A point source was placed at every cell in order to fully illuminate the model and $w$ was increased to assess changes in resolution. The resulting wavefields visually correlate with the model and increases in frequency results in increased resolution. These results agree with physical intuition and the qualitative tests add more confidence to this manuscripts Helmholtz implementation.
+Qualitative results of the discrete Helmholtz solver applied to the
+Marmousi model are shown in Figure \ref{fig:marmousi} and Figure
+\ref{fig:marmousi_helmholtz}. A point source was placed at every cell
+in order to fully illuminate the model and $w$ was increased to assess
+changes in resolution. The resulting wavefields visually correlate
+with the model and increases in frequency results in increased
+resolution. These results agree with physical intuition and the
+qualitative tests add more confidence to this manuscripts Helmholtz
+implementation.
 
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure7.eps}
-\caption{Marmousi velocity model.}
-\label{fig:marmousi}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure7.eps}
+  \caption{Marmousi velocity model.}
+  \label{fig:marmousi}
 \end{figure}
 
 \begin{figure}[H]
-\centering
-\includegraphics[width=\linewidth]{./figure8.eps}
-\caption{Discrete Helmholtz solution for $w=1, w=10, w=100$.}
-\label{fig:marmousi_helmholtz}
+  \centering
+  \includegraphics[width=\linewidth]{../figures/figure8.eps}
+  \caption{Discrete Helmholtz solution for $w=1, w=10, w=100$.}
+  \label{fig:marmousi_helmholtz}
 \end{figure}
 
 \section{Future work}
-The discrete Helmholtz solver is the first step in developing a JULIA implementation of FWI. A robust Helmholtz solution is a critical element, but much more work is required. This will include:
+The discrete Helmholtz solver is the first step in developing a JULIA
+implementation of FWI. A robust Helmholtz solution is a critical
+element, but much more work is required. This will include:
 \begin{compactitem}
 \item an Euler time-stepping implementation
-\item sensitivity tests to assess how the wavefield changes with respect to changes in the model
-\item optimizations that can minimize the non-convex objective function
+\item sensitivity tests to assess how the wavefield changes with
+  respect to changes in the model
+\item optimizations that can minimize the non-convex objective
+  function
 \end{compactitem}
 
-%----------------------------------------------------------------------------------------
-%	REFERENCE LIST
-%----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
+% REFERENCE LIST
+% ----------------------------------------------------------------------------------------
 
 \begin{thebibliography}{99} % Bibliography - this is intentionally simple in this template
 
-\bibitem{eldad}
-Eldad Haber, Computational Methods in Geophysical Electromagnetics
- \bibitem{marmousi}
- Trevor Irons, Marmousi model, \url{http://www.reproducibility.org/RSF/book/data/marmousi/paper_html/paper.html}
- \end{thebibliography}
+\bibitem{eldad} Eldad Haber, Computational Methods in Geophysical
+  Electromagnetics
+\bibitem{marmousi} Trevor Irons, Marmousi model,
+  \url{http://www.reproducibility.org/RSF/book/data/marmousi/paper_html/paper.html}
+\end{thebibliography}
 
-%----------------------------------------------------------------------------------------
+% ----------------------------------------------------------------------------------------
 
 \end{multicols}
 
