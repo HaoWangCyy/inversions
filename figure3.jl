@@ -57,7 +57,7 @@ plt.imshow(u_test[:,:,10], extent = [0,1,0,1])
 
 plt.title("U[x,y,10] solution")
 
-plt.savefig("figure5.eps")
+plt.savefig("figures/figure5.eps")
 plt.show()
 # Check the convergence
 cells =[1,2,4,8,16,32,64]
@@ -80,7 +80,7 @@ plt.plot(cells[2:end].^3,rate)
 plt.xscale("log")
 plt.ylabel("convergence rate")
 plt.xlabel("# of nodes")
-plt.savefig("figure6.eps")
+plt.savefig("figures/figure6.eps")
 
 plt.show()
 
