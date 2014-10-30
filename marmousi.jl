@@ -32,7 +32,7 @@ plt.figure()
 plt.imshow(reshape(m, n1,n2), extent=[0,9192, 2904, 0])
 plt.xlabel("offset [m]")
 plt.ylabel("depth [m]")
-plt.savefig("figure7.eps")
+plt.savefig("figures/figure7.eps")
 
 
 freq = 2* pi *[1,10,100]
@@ -51,6 +51,6 @@ for w in freq
 
 end
 plt.xlabel("offset [m]")
-plt.savefig(string("figure8.eps"))
+plt.savefig(string("figures/figure8.eps"))
 plt.show();
 
