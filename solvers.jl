@@ -31,7 +31,7 @@ are zero at model boundaries). Solves for 1,2, and 3-D cases.
     G = nodeDiff(size(m)...,dv...)
 
     # Solve HU=Q
-    H = G'*spdiagm(AvE'*(rho[:].*V))*G + spdiagm(Av'*((w^2)*V.*m[:]))
+    H = -G'*spdiagm(AvE'*(rho[:].*V))*G + spdiagm(Av'*((w^2)*V.*m[:]))
     Q = -spdiagm(Av'*V)*q[:]
 
     U = H\Q

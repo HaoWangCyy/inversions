@@ -171,7 +171,7 @@ function helmholtz1D_check(n)
     w = 0.2
     w_sqr = w^2
     m = randn(n_nodes).^2.0
-    q = -(rho.*((4*(pi^2)*cos(2*pi*x)) + (16*(pi^2)*cos(4*pi*x))) +
+    q = -(-rho.*((4*(pi^2)*cos(2*pi*x)) + (16*(pi^2)*cos(4*pi*x))) +
          (w_sqr*m.*(cos(2*pi*x) + cos(4*pi*x))))
     
     # Truth with 0 as boundary conditions(dirichlet)
@@ -235,7 +235,7 @@ function helmholtz2D_check(n1,n2)
         end 
     end
     
-    q = -(((pi^2)*rho.*u_truth) +(w_sqr*m.*u_truth))
+    q = -(-((pi^2)*rho.*u_truth) +(w_sqr*m.*u_truth))
 
 
     # put scalars on centers

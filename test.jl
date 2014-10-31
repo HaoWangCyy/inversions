@@ -19,7 +19,7 @@ nodeDiff2D_test()
 nodeDiff3D_test()
 
 helmholtz1D_converge()
-helmholtz3D_converge()
+#helmholtz3D_converge()
 helmholtz2D_converge()
 
 end

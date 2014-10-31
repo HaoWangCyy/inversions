@@ -19,6 +19,8 @@ rho = ones(size(data))
 
 # source at every point
 q = ones(n1+1,n2+1)
+#q = zeros(n1+1, n2+1)
+#q[1,:] = -1.0
 
 
 # Plot the model
@@ -29,19 +31,22 @@ plt.ylabel("depth [m]")
 plt.savefig("figures/figure7.eps")
 
 
-freq = 2* pi *[1,10,100]
+freq = 2* pi * [1:50]
 plt.figure()
 plot = 310
 
+total = zeros(n1+1, n2+1)
 for w in freq
     plot += 1
 
     u = helmholtzNeumann(rho, w, m, q, dv)
-    plt.subplot(plot)
-    plt.imshow(reshape(u, n1+1, n2+1), extent=[0,9192, 2904, 0])
-    plt.ylabel("depth [m]")
 
 end
+
+plt.imshow(total, extent=[0,9192, 2904, 0])
+plt.ylabel("depth [m]")
+plt.show()
+
 plt.xlabel("offset [m]")
 plt.savefig(string("figures/figure8.eps"))
 plt.show();
