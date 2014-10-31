@@ -69,9 +69,3 @@ function nodeDiff(n1,n2,n3,d1,d2,d3)
     return [G1,G2,G3]
 end 
 
-function helmholtzNeumann(Av, AvE, G, V, rho, w_sqr, m)
-    # Returns the helmholtz operator for dirichlet boundary conditions.
-   
-    H = G'*spdiagm(AvE'*(rho.*V))*G + spdiagm(Av'*(w_sqr*V.*m))
-    return H
-end 

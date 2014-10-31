@@ -5,3 +5,4 @@ figures
 *.gz
 *.log
 *.pdf
+.DS_Store

@@ -1,5 +1,9 @@
 include("operators.jl")
+include("solvers.jl")
+
 using Base.Test
+
+
 
 function nodeAvg1D_test()
 
@@ -164,29 +168,21 @@ function helmholtz1D_check(n)
     rho = ones(n_nodes)
     x = linspace(0,1,n_nodes)
     dx = x[2]-x[1]
-    w_sqr = 0.011
+    w = 0.2
+    w_sqr = w^2
     m = randn(n_nodes).^2.0
-    q = (rho.*((4*(pi^2)*cos(2*pi*x)) + (16*(pi^2)*cos(4*pi*x))) +
+    q = -(rho.*((4*(pi^2)*cos(2*pi*x)) + (16*(pi^2)*cos(4*pi*x))) +
          (w_sqr*m.*(cos(2*pi*x) + cos(4*pi*x))))
     
     # Truth with 0 as boundary conditions(dirichlet)
-    u_truth =cos(2*pi*x) + cos(4*pi*x)
+    u_truth = cos(2*pi*x) + cos(4*pi*x)
     
-    # Make all operators
+    # put scalars onto cell centers
     Av = nodeAvg(n_cells)
-    AvE = edgeAvg(n_cells)
-    G = nodeDiff(n_cells, dx)
-    V = ones(n_cells) * dx
-
-    # move to cell centers
-    m_cell = Av*m
-    rho_cell = Av*rho
+    rho = Av*rho
+    m = Av*m
     
-    # we are solving Au=q for u
-   
-    LS = helmholtzNeumann(Av, AvE, G,V,rho_cell, w_sqr, m_cell)
-    RS = spdiagm(Av'*V)*q
-    u_test = LS\RS
+    u_test = helmholtzNeumann(rho, w, m, q, dx)
 
     # test that convergence is O(dx)
     #@test_approx_eq_eps u_test u_truth dx
@@ -225,9 +221,11 @@ function helmholtz2D_check(n1,n2)
     d2 = y[2]-y[1]
 
     # Model
-    w_sqr = 1.0
-    m = linspace(1,50, (n1+1)*(n2+1))
-    rho = ones((n1+1)*(n2+1)).^2
+    w = 1.0
+    w_sqr = w^2
+    
+    m = randn(n1+1,n2+1).^2
+    rho = ones(n1+1,n2+1).^2
 
     # truth data
     u_truth = zeros(n1+1,n2+1)
@@ -237,24 +235,18 @@ function helmholtz2D_check(n1,n2)
         end 
     end
     
-    q = (pi^2*rho.*u_truth[:]) +(w_sqr*m.*u_truth[:])
+    q = -(((pi^2)*rho.*u_truth) +(w_sqr*m.*u_truth))
 
-    
-    # Make all operators
+
+    # put scalars on centers
     Av = nodeAvg(n1,n2)
-    AvE = edgeAvg(n1,n2)
-    G = nodeDiff(n1,n2, d1, d2)
-    V = ones(n1*n2) * d1*d2
-
-    # we are solving Au=q for u
-    H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
-    LS = H
-    RS = spdiagm(Av'*V)*q
-
-    u_test = LS\RS
+    m = reshape(Av*m[:], n1,n2)
+    rho = reshape(Av*rho[:], n1,n2)
+    
+    u_test = helmholtzNeumann(rho, w, m, q, (d1,d2))
 
     #@test_approx_eq_eps u_test u_truth[:] d1*d2
-    return mean(abs(u_test-u_truth[:]))
+    return mean(abs(u_test-u_truth))
     
 end
 
@@ -270,7 +262,7 @@ function helmholtz2D_converge()
 
     rate = error[1:end-1]./ error[2:end]
 
-    #@test_approx_eq_eps rate[end] 4.0 .3
+    @test_approx_eq_eps rate[end] 4.0 .3
 end
 
 function helmholtz3D_converge()
@@ -280,6 +272,7 @@ function helmholtz3D_converge()
     
     for i in 1:5
         error[i] = helmholtz3D_check(n[i],n[i], n[i])
+        
     end
 
     rate = error[1:end-1]./ error[2:end]
@@ -298,9 +291,10 @@ function helmholtz3D_check(n1,n2,n3)
     d3 = z[2]-z[1]
 
     # Model
-    w_sqr = 1.0
-    m = linspace(1,100,(n1+1)*(n2+1)*(n3+1)).^2
-    rho = ones((n1+1)*(n2+1)*(n3+1)).^2
+    w = 1.0
+    w_sqr = w^2
+    m = randn((n1+1),(n2+1),(n3+1)).^2
+    rho = ones((n1+1),(n2+1),(n3+1)).^2
 
     # truth data
     u_truth = zeros(n1+1,n2+1, n3+1)
@@ -312,25 +306,18 @@ function helmholtz3D_check(n1,n2,n3)
         end
     end 
  
-    q = (pi^2*rho.*u_truth[:]) +(w_sqr*m.*u_truth[:])
+    q = -(pi^2*rho.*u_truth) -(w_sqr*m.*u_truth)
     
-
-    # Make all operators
+    # put scalars on centers
     Av = nodeAvg(n1,n2,n3)
-    AvE = edgeAvg(n1,n2,n3)
-    G = nodeDiff(n1,n2,n3,
-                 d1,d2,d3)
-    
-    V = ones(n1*n2*n3) * d1*d2*d3
+    m = reshape(Av*m[:], n1,n2,n3)
+    rho = reshape(Av*rho[:], n1,n2,n3)
 
     # we are solving Au=q for u
-    H = helmholtzNeumann(Av, AvE, G, V, Av*rho[:], w_sqr, Av*m[:])
-    LS = H
-    RS = spdiagm(Av'*V)*q
+    u_test = helmholtzNeumann(rho, w, m, q, (d1,d2,d3))
 
-    u_test = LS\RS
 
-    return mean(abs(u_test-u_truth[:]))
+    return mean(abs(u_test-u_truth))
 end 
     
 
