@@ -1,7 +1,7 @@
 include("operators.jl")
 
 function helmholtzNeumann(rho, w, m, q, dv)
- """
+"""
 Solves the helmholtz equation with a Neumann boundary conditions (the derivtives
 are zero at model boundaries). Solves for 1,2, and 3-D cases.
 
@@ -22,20 +22,31 @@ are zero at model boundaries). Solves for 1,2, and 3-D cases.
         error("Invalid dimensions for source term q. Must be shape(m) +1")
     end
 
-    n_cells = size(m[:])
-    
-    # Make the operators
-    V  = ones(n_cells...)*prod(dv)
-    Av = nodeAvg(size(m)...)
-    AvE = edgeAvg(size(m)...)
-    G = nodeDiff(size(m)...,dv...)
 
+
+    Av = nodeAvg(size(m)...)
     # Solve HU=Q
-    H = -G'*spdiagm(AvE'*(rho[:].*V))*G + spdiagm(Av'*((w^2)*V.*m[:]))
-    Q = -spdiagm(Av'*V)*q[:]
+    H, Q = helmholtz(rho, w, m, dv)
+    Q = Q*q[:]
 
     U = H\Q
 
     return reshape(U, size(q))
 end 
     
+function helmholtzSensitivity(P,rho, w, m, q, dv)
+
+    H, Q = helmholtz(rho, w, m, dv)
+    U = helmholtzNeumann(rho, w, m, q,dv)
+
+    G = helmholtzDerivative(U,w,dv)
+
+    J = -P*inv(full(H))*G
+
+    return J
+end
+    
+    
+    
+
+

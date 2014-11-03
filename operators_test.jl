@@ -321,3 +321,70 @@ function helmholtz3D_check(n1,n2,n3)
 end 
     
 
+
+function helmholtzSensTest()
+
+    n = 50
+    P = speye(n+1)
+
+    w = 10.0
+
+    m = 1./(randn(n)*2500).^2
+
+    rho = randn(n).^2 * 2500
+
+    q = zeros(n+1)
+    q[20] = 1.0
+
+    dv = 1.0
+
+    sens = helmholtzSensitivity(P, rho, w, m, q, dv)
+
+end 
+
+    
+function derivativeTest()
+
+    n = 100
+
+    q = randn(n+1).^2
+    m = randn(n).^2
+    w = 10.0
+    rho = ones(n)
+    dv = 10.0
+    v = rand(size(m))
+    
+    U = helmholtzNeumann(rho, w, m,q,dv)
+
+    G = helmholtzDerivative(U,w,dv)
+
+    diff_lin = zeros(10)
+    diff_quad = zeros(10)
+    h_ = zeros(10)
+
+    P = speye(n+1)
+    J = helmholtzSensitivity(P, rho, w, m, q, dv)
+    
+    for i in 1:10
+
+        h = 10.0^(-i)
+
+        Ui = helmholtzNeumann(rho, w, m+(h*v),q,dv)
+        
+        diff1 = norm(Ui-U)
+        diff2 = norm(Ui - U - (J*h*v))
+        
+        diff_lin[i] = diff1
+        diff_quad[i] = diff2
+        h_[i] = h
+        
+    end 
+
+    lin_rate = diff_lin[2:end] ./ diff_lin[1:end-1]
+    quad_rate = diff_quad[2:end] ./ diff_quad[1:end-1]
+
+    @test_approx_eq_eps lin_rate[5] 1/10. .01
+    @test_approx_eq_eps quad_rate[5] 1/100. .001
+    
+    return
+end 

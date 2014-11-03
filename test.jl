@@ -20,6 +20,8 @@ nodeDiff3D_test()
 
 helmholtz1D_converge()
 #helmholtz3D_converge()
-helmholtz2D_converge()
+#helmholtz2D_converge()
+
+derivativeTest()
 
 end
