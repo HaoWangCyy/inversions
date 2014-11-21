@@ -51,7 +51,7 @@ small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above flo
 \pagestyle{fancy} % All pages have headers and footers
 \fancyhead{} % Blank out the default header
 \fancyfoot{} % Blank out the default footer
-\fancyhead[C]{EOSC 555 Assignment 1 $\bullet$ October 2014} % Custom header text
+\fancyhead[C]{EOSC 555 Assignment 1 $\bullet$ November 2014} % Custom header text
 \fancyfoot[RO,LE]{\thepage} % Custom footer text
 
 \usepackage{amsmath}
@@ -108,8 +108,8 @@ small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above flo
   particular interest to the author, the Helmholtz equation is used to
   model the physics of seismic p-waves
   \begin{equation}
-    \label{eq:helmholtz}Av
-    \nabla \cdot \rho \nabla U + \omega ^2 mU = q
+    \label{eq:helmholtz}
+    \nabla \cdot \rho \nabla U + \omega ^2 mU = -q
   \end{equation}
   where $\rho$ is the density of the earth, $U$ is the scalar
   p-wavefield, $\omega = 2\pi f$, $q$ is the source term, and
@@ -149,11 +149,11 @@ The strong form of the Helmholtz equation, given in equation
 of $U$, which can be relaxed using the weak-form representation:
 \begin{equation}
   \label{eq:helmholtz_soft_U}
-  \int\limits_V f\nabla \cdot \rho edv+ \int\limits_V f\omega ^2 mUdv= \int\limits_V fqdv
+  \int\limits_V f\nabla \cdot \rho edv+ \int\limits_V f\omega ^2 mUdv= -\int\limits_V fqdv
 \end{equation}
 \begin{equation}
   \label{eq:helmholtz_soft_e}
-  \int\limits_V g\nabla Udv = \int\limits_V gedv
+  \int\limits_V g\nabla Udv = -\int\limits_V gedv
 \end{equation}
 where
 \begin{equation}
@@ -164,11 +164,11 @@ and $f$ and $g$ are arbitrary smooth test functions.  Integrating by
 parts and applying a zero Neumann boundary condition yields:
 \begin{equation}
   \label{eq:U_parts}
-  -\int\limits_V \rho e \cdot \nabla fdv +  \int\limits_V f\omega ^2 mUdv= \int\limits_V fqdv
+  -\int\limits_V \rho e \cdot \nabla fdv +  \int\limits_V f\omega ^2 mUdv= -\int\limits_V fqdv
 \end{equation}
 \begin{equation}
   \label{eq:e_parts}
-  -\int\limits_V U\nabla gdv=\int\limits_V gedv
+  \int\limits_V U\nabla gdv=\int\limits_V gedv
 \end{equation}
 The integrals in \ref{eq:U_parts} and \ref{eq:e_parts} can be
 discretized by summing the estimated integral of each element of a
@@ -180,9 +180,9 @@ Sampling $U$, $q$, $m$, and $f$ at the nodes of the cells, $e$ and $g$
 at the cell edges, and the model parameters $\rho$ and $m$ at cell
 centres yields:
 \begin{align}
-  s^T V \rho \bigodot Av^e &(e\bigodot Gf) + \omega ^2 s^T Avf \bigodot U \nonumber \\
+  -s^T V \rho \bigodot Av^e &(e\bigodot Gf) + \omega ^2 s^T Avf \bigodot U \nonumber \\
   \label{eq:discrete_1}
-  &= VAv(f\bigodot q)
+  &= -VAv(f\bigodot q)
 \end{align}
 \begin{equation}
   \label{eq:discrete_2}
@@ -208,7 +208,7 @@ simplified to one expression independent of the test functions $f$ and
 $g$:
 \begin{align}
   \label{eq:discrete_helmholtz}
-  G^Tdiag(Av^eV\rho)&GU + diag(Av^Tw^2m)U \nonumber \\ =
+  -G^Tdiag(Av^eV\rho)&GU + diag(Av^Tw^2m)U \nonumber \\ =
   &-diag(Av^Tv^T)q
 \end{align}
 
@@ -417,12 +417,9 @@ complex seismic data.
 Qualitative results of the discrete Helmholtz solver applied to the
 Marmousi model are shown in Figure \ref{fig:marmousi} and Figure
 \ref{fig:marmousi_helmholtz}. A point source was placed at every cell
-in order to fully illuminate the model and $w$ was increased to assess
-changes in resolution. The resulting wavefields visually correlate
-with the model and increases in frequency results in increased
-resolution. These results agree with physical intuition and the
-qualitative tests add more confidence to this manuscripts Helmholtz
-implementation.
+along the surface to illuminate the model and $w$ was increased to assess
+changes in resolution. The resulting wave fields are somewhat difficult to interpret 
+but will be used to verify the solver against existing implementations.
 
 \begin{figure}[H]
   \centering
@@ -434,7 +431,7 @@ implementation.
 \begin{figure}[H]
   \centering
   \includegraphics[width=\linewidth]{../figures/figure8.eps}
-  \caption{Discrete Helmholtz solution for $w=1, w=10, w=100$.}
+  \caption{Discrete Helmholtz solution for $w=3, w=5, w=10$.}
   \label{fig:marmousi_helmholtz}
 \end{figure}
 
@@ -443,11 +440,11 @@ The discrete Helmholtz solver is the first step in developing a JULIA
 implementation of FWI. A robust Helmholtz solution is a critical
 element, but much more work is required. This will include:
 \begin{compactitem}
-\item an Euler time-stepping implementation
-\item sensitivity tests to assess how the wavefield changes with
+\item an Euler time-stepping implementation of the wave-equation
+\item sensitivity tests to assess how the solution changes with
   respect to changes in the model
 \item optimizations that can minimize the non-convex objective
-  function
+  function and invert for the model
 \end{compactitem}
 
 % ----------------------------------------------------------------------------------------

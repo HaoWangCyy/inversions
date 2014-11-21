@@ -219,12 +219,12 @@ function helmholtz2D_check(n1,n2)
 
     d1 = x[2]-x[1]
     d2 = y[2]-y[1]
-
+    dv=(d1,d2)
     # Model
-    w = 1.0
+    w = 2.0
     w_sqr = w^2
     
-    m = randn(n1+1,n2+1).^2
+    m = randn(n1+1,n2+1).^2 
     rho = ones(n1+1,n2+1).^2
 
     # truth data
@@ -235,34 +235,38 @@ function helmholtz2D_check(n1,n2)
         end 
     end
     
-    q = -(-((pi^2)*rho.*u_truth) +(w_sqr*m.*u_truth))
+    q = (pi^2)*rho.*u_truth - (w_sqr*m.*u_truth)
 
 
     # put scalars on centers
     Av = nodeAvg(n1,n2)
     m = reshape(Av*m[:], n1,n2)
     rho = reshape(Av*rho[:], n1,n2)
+
+    H, Q = helmholtz(rho, w, m, dv)
+   
     
     u_test = helmholtzNeumann(rho, w, m, q, (d1,d2))
 
+    #print( maximum(H*u_truth[:]-Q*q[:]))
     #@test_approx_eq_eps u_test u_truth[:] d1*d2
-    return mean(abs(u_test-u_truth))
+    return mean(abs(H*u_truth[:]-Q*q[:]))
     
 end
 
 function helmholtz2D_converge()
-    n = [4,8,16,32,64, 128]
+    n = [4,8,16,32,64, 128, 256, 512, 1024]
 
-    error = zeros(6)
+    error = zeros(9)
     
-    for i in 1:6
-        print(n[i], n[i])
+    for i in 1:9
         error[i] = helmholtz2D_check(n[i],n[i])
     end
 
     rate = error[1:end-1]./ error[2:end]
 
-    @test_approx_eq_eps rate[end] 4.0 .3
+    return rate
+    #@test_approx_eq_eps rate[end] 4.0 .3
 end
 
 function helmholtz3D_converge()
@@ -290,6 +294,7 @@ function helmholtz3D_check(n1,n2,n3)
     d2 = y[2]-y[1]
     d3 = z[2]-z[1]
 
+    dv = (d1,d2,d3)
     # Model
     w = 1.0
     w_sqr = w^2
@@ -306,7 +311,7 @@ function helmholtz3D_check(n1,n2,n3)
         end
     end 
  
-    q = -(pi^2*rho.*u_truth) -(w_sqr*m.*u_truth)
+    q = (pi^2*rho.*u_truth) -(w_sqr*m.*u_truth)
     
     # put scalars on centers
     Av = nodeAvg(n1,n2,n3)
@@ -343,7 +348,7 @@ function helmholtzSensTest()
 end 
 
     
-function derivativeTest()
+function derivativeTest1D()
 
     n = 100
 
@@ -385,6 +390,95 @@ function derivativeTest()
 
     @test_approx_eq_eps lin_rate[5] 1/10. .01
     @test_approx_eq_eps quad_rate[5] 1/100. .001
+end
+
+function derivativeTest2D()
+
+    n1,n2 = 15,15
     
-    return
-end 
+    q = randn(n1+1, n2+1).^2
+    m = randn(n1,n2).^2
+    w = 10.0
+    rho = ones(n1,n2)
+    dv = (10.0,10)
+    v = rand(size(m))
+    
+    U = helmholtzNeumann(rho, w, m,q,dv)
+
+    G = helmholtzDerivative(U,w,dv)
+
+    diff_lin = zeros(10)
+    diff_quad = zeros(10)
+    h_ = zeros(10)
+
+    P = speye((n1+1)*(n2+1))
+    J = helmholtzSensitivity(P, rho, w, m, q, dv)
+    
+    for i in 1:10
+
+        h = 10.0^(-i)
+
+        Ui = helmholtzNeumann(rho, w, m+(h*v),q,dv)
+        
+        diff1 = norm(Ui[:]-U[:])
+        diff2 = norm(Ui[:] - U[:] - (J*h*v[:]))
+        
+        diff_lin[i] = diff1
+        diff_quad[i] = diff2
+        h_[i] = h
+        
+    end 
+
+    lin_rate = diff_lin[2:end] ./ diff_lin[1:end-1]
+    quad_rate = diff_quad[2:end] ./ diff_quad[1:end-1]
+
+    @test_approx_eq_eps lin_rate[5] 1/10. .01
+    @test_approx_eq_eps quad_rate[5] 1/100. .001
+end
+
+function adjointTest()
+
+    n = 1000
+
+    q = linspace(0,10,n+1).^2
+    m = linspace(10,20,n).^2
+    w = 10.0
+    rho = ones(n)
+    dv = 10.0
+    v = ones(size(m))*.01
+
+    P = speye(n+1)
+    J = helmholtzSensitivity(P, rho, w, m, q, dv)
+
+    y = linspace(20,50,n+1)
+    x = linspace(0,10,n)
+
+    adj_test = ((J*x)'*y) - (x'*(J'*y))
+    @test_approx_eq_eps  adj_test 0.0 1e-20
+
+end
+
+
+function adjointTest2D()
+
+    n1,n2 = 25,25
+    
+    q = zeros(n1+1, n2+1)
+    q[[2,4,6],10] = 100
+    m = reshape(linspace(1,2000, n1*n2), n1,n2)
+    w = 2.0
+    rho = ones(n1,n2)
+    dv = (10.0,10.0)
+    
+    P = speye((n1+1)*(n2+1))
+    J = helmholtzSensitivity(P, rho, w, m, q, dv)
+
+    y = linspace(0,2,(n1+1)*(n2+1))
+    x = linspace(0,10,(n1)*(n2))
+
+    adj_test = ((J*x)'*y) - (x'*(J'*y))
+    @test_approx_eq_eps  adj_test 0.0 1e-16
+
+end
+
+    

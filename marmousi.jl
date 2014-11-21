@@ -17,37 +17,38 @@ dv = (24,24) #m
 m = 1. ./ data.^2
 rho = ones(size(data))
 
-# source at every point
-q = ones(n1+1,n2+1)
-#q = zeros(n1+1, n2+1)
-#q[1,:] = -1.0
+# put sources on the surface
+q = zeros(n1+1, n2+1)
+q[10,180] = .001
 
 
 # Plot the model
 plt.figure()
-plt.imshow(reshape(m, n1,n2), extent=[0,9192, 2904, 0])
+plt.imshow(reshape(m, n1,n2), extent=[0,9192, 2904, 0])#
 plt.xlabel("offset [m]")
 plt.ylabel("depth [m]")
+plt.show()plt
 plt.savefig("figures/figure7.eps")
 
 
-freq = 2* pi * [1:50]
-plt.figure()
-plot = 310
+freq = [i for i in 1:10]
 
-total = zeros(n1+1, n2+1)
-for w in freq
-    plot += 1
+time = linspace(0,1,1000)
 
-    u = helmholtzNeumann(rho, w, m, q, dv)
+u = zeros(1000,385)
+for f in freq
+    
+    
+    w = 2* pi * f
+    
+    H = helmholtzNeumann(rho, w, m, q, dv)
 
+    #uf = cos(w*time) .* H[1,:]
+    u = H
 end
 
-plt.imshow(total, extent=[0,9192, 2904, 0])
-plt.ylabel("depth [m]")
+plt.imshow(u)
+plt.xlabel("offset [m]")
 plt.show()
 
-plt.xlabel("offset [m]")
-plt.savefig(string("figures/figure8.eps"))
-plt.show();
 

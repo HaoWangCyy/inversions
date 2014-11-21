@@ -2,8 +2,8 @@ include("operators.jl")
 
 function helmholtzNeumann(rho, w, m, q, dv)
 """
-Solves the helmholtz equation with a Neumann boundary conditions (the derivtives
-are zero at model boundaries). Solves for 1,2, and 3-D cases.
+Solves the helmholtz equation with a Neumann boundary conditions (the gradient
+is zero at model boundaries). Solves for 1,2, and 3-D cases.
 
 @param rho: The density of the earth model, sampled at the grid centers. Can be
             a single value of array the same size as m.

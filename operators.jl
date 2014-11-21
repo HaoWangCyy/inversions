@@ -26,8 +26,8 @@ end
 
 function edgeAvg(n1,n2)
     # Averages from edges to cell centers
-    Av1 = kron(speye(n1),nodeAvg(n2))
-    Av2 = kron(nodeAvg(n1), speye(n2))
+    Av1 = kron(nodeAvg(n2), speye(n1))
+    Av2 = kron( speye(n2), nodeAvg(n1))
     
     return [Av1 Av2] 
 end 
