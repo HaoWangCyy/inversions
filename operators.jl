@@ -107,11 +107,14 @@ function nodeDiff(n1,n2,n3,d1,d2,d3)
     return [G1,G2,G3]
 end 
 
-
-function helmholtz(rho, w, m, dv)
+        
+                 
+function helmholtz(rho, w, m, dv, S=S)
 """
 Makes the helmoltz operators H and Q, HU=Qq
 """
+
+    isdefined(:S) || (S=1) 
     
     n_cells = size(m[:])
     
@@ -120,13 +123,13 @@ Makes the helmoltz operators H and Q, HU=Qq
     Av = nodeAvg(size(m)...)
     AvE = edgeAvg(size(m)...)
     G = nodeDiff(size(m)...,dv...)
-
-    H = -G'*spdiagm(AvE'*(rho[:].*V))*G + spdiagm(Av'*((w^2)*V.*m[:]))
+    
+    H = -G'*spdiagm(AvE'*(rho[:].*V))*(S * G) + spdiagm(Av'*((w^2)*V.*m[:]))
 
     Q = -spdiagm(Av'*V)
+    
     return H, Q
 end
-
 
 function helmholtzDerivative(U,w,dv)
 
