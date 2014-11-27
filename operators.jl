@@ -26,9 +26,10 @@ end
 
 function edgeAvg(n1,n2)
     # Averages from edges to cell centers
+
     Av1 = kron(nodeAvg(n2), speye(n1))
-    Av2 = kron( speye(n2), nodeAvg(n1))
-    
+    Av2 = kron(speye(n2), nodeAvg(n1))
+ 
     return [Av1 Av2] 
 end 
 
@@ -40,6 +41,43 @@ function edgeAvg(n1,n2,n3)
     
     return [A1 A2 A3]
 end
+
+
+function centerToEdgeAvg(n1)
+    # Averages from cell center cell edges
+
+    Av = spdiagm(tuple(ones(n1)*.5, ones(n1)*.5),[0,-1])
+
+    Av[1,1] = 1.0
+    Av[end,end] = 1.0
+
+    return Av
+end
+
+
+function centerToEdgeAvg(n1,n2)
+
+    A1 = kron(centerToEdgeAvg(n1), speye(n2))
+    A1 = [A1 spzeros(size(A1)...)]
+    
+    A2 = kron(speye(n1), centerToEdgeAvg(n2))
+    A2 = [spzeros(size(A2)...) A2]
+
+    return [A1, A2]
+end
+
+function centerToEdgeAvg(n1,n2,n3)
+    
+    A1 = kron(centerToEdgeAvg(n3),kron(centerToEdgeAvg(n1), speye(n2)))
+
+    A2 = kron(centerToEdgeAvg(n3),kron(speye(n2),centerToEdgeAvg(n1))); 
+
+    A3 = kron(kron(speye(n3), centerToEdgeAvg(n1)),centerToEdgeAvg(n2));
+    
+    return [A1, A2, A3]
+end
+
+
 
 function nodeDiff(n, dn)
     # Returns a difference operator to differentiate on the nodes of a grid
