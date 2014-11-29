@@ -17,23 +17,25 @@ is zero at model boundaries). Solves for 1,2, and 3-D cases.
 """
     
 
-    if [size(q)...] != ([size(m)...] + 1)
+    if ndims(q) == 3
 
-        error("Invalid dimensions for source term q. Must be shape(m) +1")
+        _q = reshape(q, prod(size(q)[1:2]), size(q)[3])
+    else
+        _q = q[:]
     end
-
 
 
     Av = nodeAvg(size(m)...)
     # Solve HU=Q
     H, Q = helmholtz(rho, w, m, dv, S)
-    Q = Q*q[:]
+    Q = Q*_q
 
     U = H\Q
 
     return reshape(U, size(q))
 end 
-    
+
+
 function helmholtzSensitivity(P,rho, w, m, q, dv)
 
     H, Q = helmholtz(rho, w, m, dv)

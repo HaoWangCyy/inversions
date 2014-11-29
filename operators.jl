@@ -125,7 +125,7 @@ Makes the helmoltz operators H and Q, HU=Qq
     G = nodeDiff(size(m)...,dv...)
     
     H = -G'*spdiagm(AvE'*(rho[:].*V))*(S * G) + spdiagm(Av'*((w^2)*V.*m[:]))
-
+    #H = -G'*S *G + spdiagm(Av'*((w^2)*V.*m[:]))
     Q = -spdiagm(Av'*V)
     
     return H, Q

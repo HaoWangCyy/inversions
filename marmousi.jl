@@ -25,7 +25,7 @@ m = 1. ./ data.^2
 lambda = 100.0
 k = 2*pi/lambda
 
-S,m = PML(m, w, C, pad)
+S,m = PML(m, k, C, pad)
 
 rho = ones(size(m))
 
@@ -41,7 +41,7 @@ u = u[pad[1] + 1:u_size[1]-pad[2], pad[3]:u_size[2]-pad[4]]
 
 
 
-plt.imshow(real(u))
+plt.imshow()
 plt.xlabel("offset [m]")
 plt.show()
 
