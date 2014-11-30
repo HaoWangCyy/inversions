@@ -482,39 +482,18 @@ function adjointTest2D()
 end
 
 
-function adjointVectorTest(u, H, P, w, dv)
+function adjointVectorTest(u, A, P, w, dv)
 
     
 
     v = randn(size(u)[1]-1, size(u)[2]-1)*1e-4
     V = randn(size(P)[2], size(P)[2])*1e-4
 
-
-    V = randn(size(P)[2], size(P)[2]).^2
-    PV = P*V
-    Z = (H')\PV
-
-    Gv1 = helmholtzDerivative(u[:,:,1],w,dv)*v[:]
-    Gv = zeros(Complex,length(Gv1), size(u)[3])
-    JTv = 0.0
-    for i = 2:size(P)[2]
-
-    
-        Gi = helmholtzDerivative(u[:,:,i],w,dv)
-        
-        Gv[:,i] +=  Gi*v[:]
-        JTv = JTv - Gi'*Z[:,i];
-        
-    end 
+    JTV = jacobianTw(u, A, P, w, dv, V)
+    Jv = jacobianv(u, A, P, w, dv, v)
 
 
-
-    Z = H\Gv
-    Jv = -real(P'*Z)
-    JTv = real(JTv)
-
-
-    adj_test = JTv'*v[:] - V[:]'*Jv[:]
+    adj_test = JTV'*v[:] - V[:]'*Jv[:]
    
     @test_approx_eq_eps  adj_test 0.0 1e-20
 end 

@@ -33,7 +33,7 @@ end
 
 function PML(m,w,sigma,pad,dv)
 
-    padded_m= pad_model(m, pad...)
+    padded_m = m
 
     if length(dv) == 1
 

@@ -131,6 +131,41 @@ Makes the helmoltz operators H and Q, HU=Qq
     return H, Q
 end
 
+function jacobianTw(u, A, P, w, dv, V)
+
+    PV = P*V
+    Z = (A')\PV
+
+    jTv = 0
+    for i = 1:size(P)[2]
+
+        Gi = helmholtzDerivative(u[:,:,i],w,dv)
+        jTv -= Gi'*Z[:,i]
+    end 
+
+
+    return real(jTv)
+end 
+
+function jacobianv(u, A, P, w, dv, v)
+
+
+    Gv1 = helmholtzDerivative(u[:,:,1],w,dv)*v[:]
+    Gv = zeros(Complex,length(Gv1), size(u)[3])
+
+    for i = 1:size(P)[2]
+
+        Gi = helmholtzDerivative(u[:,:,i],w,dv)
+        
+        Gv[:,i] +=  Gi*v[:]
+        
+    end
+    
+    Z = H\Gv 
+    return -real(P'*Z)
+
+end
+
 function helmholtzDerivative(U,w,dv)
 
 
