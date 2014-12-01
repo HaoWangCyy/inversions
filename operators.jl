@@ -161,7 +161,7 @@ function jacobianv(u, A, P, w, dv, v)
         
     end
     
-    Z = H\Gv 
+    Z = A\Gv 
     return -real(P'*Z)
 
 end
