@@ -484,34 +484,35 @@ end
 
 function jacobianConvergence(rho, w, m_pad, m, Q, P, A,dv,S,s,Ia)
     
-    v = rand(size(m_pad))
+    v = rand(size(m))*100
 
     U = helmholtzNeumann(rho, w, m_pad,Q,dv, S,s)
-    D = P'*reshape(U, prod(size(U)[1:2]), size(P)[2])
+    D = real(P'*reshape(U, prod(size(U)[1:2]), size(P)[2]))
 
     diff_lin = zeros(10)
     diff_quad = zeros(10)
-    
+    _h = zeros(10)
     for i =1:10
-        h = 10.0^(-i)
+        h = 10.0^(-(i))
 
         dm = v*h
-
+        mi = m_pad + reshape(Ia*dm[:], size(m_pad))
         
-        print(size(Ia'*dm[:]))
+        J = jacobianv(U, A, P, w, dv, dm, s, Ia)
+        Ui = helmholtzNeumann(rho, w, mi, Q, dv, S,s)
         
-        J = jacobianv(U, A, P, w, dv, Ia'*dm[:], s, Ia)
-        Ui = helmholtzNeumann(rho, w, m_pad + dm, Q, dv, S,s)
-        
-        Di = P'*reshape(Ui, prod(size(U)[1:2]), size(P)[2])
+        Di = real(P'*reshape(Ui, prod(size(U)[1:2]), size(P)[2]))
         
         diff_lin[i] = norm(Di[:]-D[:])
+        
      
-        diff_quad[i] = norm(Di[:] - D[:] - J[:])
+        diff_quad[i] = norm(Di[:] - D[:] - real(J'[:]))
+
+        _h[i] = h
     end 
                          
         
-   return diff_lin, diff_quad     
+   return _h, diff_quad     
     
 end 
 

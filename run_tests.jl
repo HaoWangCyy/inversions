@@ -1,4 +1,4 @@
-include("operators_test.jl")
+ include("operators_test.jl")
 using Base.Test
 
 test_handler(r::Test.Success) = println("Success on $(r.expr)")
@@ -18,13 +18,13 @@ nodeDiff1D_test()
 nodeDiff2D_test()
 nodeDiff3D_test()
 
-helmholtz1D_converge()
-helmholtz3D_converge()
+#helmholtz1D_converge()
+#helmholtz3D_converge()
 #helmholtz2D_converge()
 
-derivativeTest()
-adjointTest()
-derivativeTest2D()
-adjointTest2D()
+#derivativeTest()
+#adjointTest()
+#derivativeTest2D()
+#adjointTest2D()
 
 end

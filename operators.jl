@@ -125,13 +125,17 @@ Makes the helmoltz operators H and Q, HU=Qq
     G = nodeDiff(size(m)...,dv...)
     
     H = (-G'*spdiagm(AvE'*(rho[:].*V))*(S * G) +
-         spdiagm(Av'*((w^2)*V.* s[:] .* m[:])))
-    
-    #H = -G'*S *G + spdiagm(Av'*((w^2)*V.*m[:]))
+         spdiagm(Av'*((w^2) *V.* s[:] .* m[:])))
+
+    #p1 = (w^2)*spdiagm(Av'*(s[:] .* m[:]))
+    #p2 = (-G'*(S* G))
+    #H =  p1+ p2
+
     Q = -spdiagm(Av'*V)
     
     return H, Q
 end
+
 
 function jacobianTw(u, A, P, w, dv, V,s,Ia)
 
@@ -151,14 +155,15 @@ end
 
 function jacobianv(u, A, P, w, dv, v, s, Ia)
 
-
+    print(size(u[:,:,1]))
+    
     Gv1 = helmholtzDerivative(u[:,:,1],w,dv,s, Ia)*v[:]
     Gv = zeros(Complex,length(Gv1), size(u)[3])
 
     for i = 1:size(P)[2]
 
         Gi = helmholtzDerivative(u[:,:,i],w,dv,s,Ia)
-        Gv[:,i] +=  Gi*v[:]
+        Gv[:,i] =  Gi*v[:]
         
     end
     
@@ -169,15 +174,14 @@ end
 
 function helmholtzDerivative(U,w,dv,s,Ia)
 
-
     Av = nodeAvg([size(U)...]-1 ...)
-    
+
     n_cells = prod([size(U)...]-1)
     v = ones(n_cells)*prod(dv)
 
-    G = w^2 * spdiagm(U[:])*Av'*spdiagm(v .* s) * Ia
+    G = w^2 * spdiagm(U[:])*Av'*spdiagm(v .* s[:]) * Ia
 
- 
+    #G = w^2 * spdiagm(U[:])*Av'*spdiagm(s[:]) * Ia
     return G
 end 
 

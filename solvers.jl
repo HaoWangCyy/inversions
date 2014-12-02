@@ -30,7 +30,7 @@ is zero at model boundaries). Solves for 1,2, and 3-D cases.
     # Solve HU=Q
     H, Q = helmholtz(rho, w, m, dv, S, s)
     Q = Q*_q
-
+  
     U = H\Q
 
     return reshape(U, size(q))
