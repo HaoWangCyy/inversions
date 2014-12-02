@@ -482,11 +482,11 @@ function adjointTest2D()
 end
 
 
-function jacobianConvergence(rho, w, m, Q, P,S, A, pad,dv)
+function jacobianConvergence(rho, w, m_pad, m, Q, P, A,dv,S,s,Ia)
+    
+    v = rand(size(m_pad))
 
-    v = rand(size(m))*10000
-
-    U = helmholtzNeumann(rho, w, m,Q,dv, S)
+    U = helmholtzNeumann(rho, w, m_pad,Q,dv, S,s)
     D = P'*reshape(U, prod(size(U)[1:2]), size(P)[2])
 
     diff_lin = zeros(10)
@@ -496,8 +496,13 @@ function jacobianConvergence(rho, w, m, Q, P,S, A, pad,dv)
         h = 10.0^(-i)
 
         dm = v*h
-        J = jacobianv(U, A, P, w, dv, dm)
-        Ui = helmholtzNeumann(rho, w, m+dm, Q, dv, S)
+
+        
+        print(size(Ia'*dm[:]))
+        
+        J = jacobianv(U, A, P, w, dv, Ia'*dm[:], s, Ia)
+        Ui = helmholtzNeumann(rho, w, m_pad + dm, Q, dv, S,s)
+        
         Di = P'*reshape(Ui, prod(size(U)[1:2]), size(P)[2])
         
         diff_lin[i] = norm(Di[:]-D[:])
@@ -512,18 +517,19 @@ end
 
     
     
-function adjointVectorTest(u, A, P, w, dv)
+function adjointVectorTest(u,m, A, P, w, dv, s, Ia)
 
     
 
-    v = randn(size(u)[1]-1, size(u)[2]-1)*1e-4
+    v = randn(size(m))*1e-4
     V = randn(size(P)[2], size(P)[2])*1e-4
 
-    JTV = jacobianTw(u, A, P, w, dv, V)
-    Jv = jacobianv(u, A, P, w, dv, v)
+    JTV = jacobianTw(u, A, P, w, dv, V, s, Ia)
+    Jv = jacobianv(u, A, P, w, dv, v, s, Ia)
 
 
     adj_test = JTV'*v[:] - V[:]'*Jv[:]
-   
+
+    print(adj_test)
     @test_approx_eq_eps  adj_test 0.0 1e-20
 end 

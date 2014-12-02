@@ -1,6 +1,6 @@
 include("operators.jl")
 
-function helmholtzNeumann(rho, w, m, q, dv, S=S)
+function helmholtzNeumann(rho, w, m, q, dv, S,s)
 """
 Solves the helmholtz equation with a Neumann boundary conditions (the gradient
 is zero at model boundaries). Solves for 1,2, and 3-D cases.
@@ -26,8 +26,9 @@ is zero at model boundaries). Solves for 1,2, and 3-D cases.
 
 
     Av = nodeAvg(size(m)...)
+    
     # Solve HU=Q
-    H, Q = helmholtz(rho, w, m, dv, S)
+    H, Q = helmholtz(rho, w, m, dv, S, s)
     Q = Q*_q
 
     U = H\Q

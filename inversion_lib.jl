@@ -18,16 +18,19 @@ end
 function pad_model(m, p1,p2,p3,p4)
 
     # Prevents the corners from being zero
-    padded_m = ones([size(m)...] + [p1+p2,p3+p4]...)*mean(m)
+    padded_m = zeros([size(m)...] + [p1+p2,p3+p4]...)
     mask = ones([size(m)...] + [p1+p2,p3+p4]...)
 
     m_size = size(padded_m)
     padded_m[pad[1] + 1:m_size[1]-pad[2], pad[3]+1:m_size[2]-pad[4]] = m
 
-    mask[pad[1] + 1:m_size[1]-pad[2], pad[3]+1:m_size[2]-pad[4]] = 0.0
+    Ia = speye(prod(size(padded_m)))
+    Ia = Ia[:,find(padded_m .> 0)]
+
+    padded_m[padded_m .== 0] = mean(m)
     
 
-    return padded_m
+    return padded_m, Ia
 end 
 
 
@@ -38,8 +41,8 @@ function PML(m,w,sigma,pad,dv)
     if length(dv) == 1
 
         sigma_x = zeros(padded_m)
-        sigma_x[1:pad[1]] = sigma*([1:pad[1]]*dv/pad[1]).^2
-        sigma_x[end-pad[2]:end] = sigma*([1:pad[2]]*dv/pad[2]).^2
+        sigma_x[1:pad[1]] = sigma*([1:pad[1]]*dv/pad[1])
+        sigma_x[end-pad[2]:end] = sigma*([1:pad[2]]*dv/pad[2])
         S = 1 ./ (1+sigma_x./(w*padded_m)im)
         
     elseif length(dv) == 2
@@ -68,7 +71,7 @@ function PML(m,w,sigma,pad,dv)
 
         S = [(s2 ./ s1)[:] (s1 ./ s2)[:]]
         
-        padded_m = s1 .* s2 .* padded_m
+        s = reshape(s1[:] .* s2[:], size(padded_m))
 
         
     elseif length(c)==3
@@ -80,6 +83,6 @@ function PML(m,w,sigma,pad,dv)
     S = centerToEdgeAvg(size(padded_m)...) * S[:]
     
     
-    return spdiagm(S), padded_m
+    return spdiagm(S), s
 
 end

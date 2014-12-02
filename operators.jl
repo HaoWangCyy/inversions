@@ -109,29 +109,31 @@ end
 
         
                  
-function helmholtz(rho, w, m, dv, S=S)
+function helmholtz(rho, w, m, dv, S=S,s=s)
 """
 Makes the helmoltz operators H and Q, HU=Qq
 """
 
-    isdefined(:S) || (S=1) 
+    isdefined(:S) || (S=1.0) 
     
     n_cells = size(m[:])
-    
+
     # Make the operators
     V  = ones(n_cells...)*prod(dv)
     Av = nodeAvg(size(m)...)
     AvE = edgeAvg(size(m)...)
     G = nodeDiff(size(m)...,dv...)
     
-    H = -G'*spdiagm(AvE'*(rho[:].*V))*(S * G) + spdiagm(Av'*((w^2)*V.*m[:]))
+    H = (-G'*spdiagm(AvE'*(rho[:].*V))*(S * G) +
+         spdiagm(Av'*((w^2)*V.* s[:] .* m[:])))
+    
     #H = -G'*S *G + spdiagm(Av'*((w^2)*V.*m[:]))
     Q = -spdiagm(Av'*V)
     
     return H, Q
 end
 
-function jacobianTw(u, A, P, w, dv, V)
+function jacobianTw(u, A, P, w, dv, V,s,Ia)
 
     PV = P*V
     Z = (A')\PV
@@ -139,7 +141,7 @@ function jacobianTw(u, A, P, w, dv, V)
     jTv = 0
     for i = 1:size(P)[2]
 
-        Gi = helmholtzDerivative(u[:,:,i],w,dv)
+        Gi = helmholtzDerivative(u[:,:,i],w,dv, s, Ia)
         jTv -= Gi'*Z[:,i]
     end 
 
@@ -147,16 +149,15 @@ function jacobianTw(u, A, P, w, dv, V)
     return real(jTv)
 end 
 
-function jacobianv(u, A, P, w, dv, v)
+function jacobianv(u, A, P, w, dv, v, s, Ia)
 
 
-    Gv1 = helmholtzDerivative(u[:,:,1],w,dv)*v[:]
+    Gv1 = helmholtzDerivative(u[:,:,1],w,dv,s, Ia)*v[:]
     Gv = zeros(Complex,length(Gv1), size(u)[3])
 
     for i = 1:size(P)[2]
 
-        Gi = helmholtzDerivative(u[:,:,i],w,dv)
-        
+        Gi = helmholtzDerivative(u[:,:,i],w,dv,s,Ia)
         Gv[:,i] +=  Gi*v[:]
         
     end
@@ -166,7 +167,7 @@ function jacobianv(u, A, P, w, dv, v)
 
 end
 
-function helmholtzDerivative(U,w,dv,pad=pad)
+function helmholtzDerivative(U,w,dv,s,Ia)
 
 
     Av = nodeAvg([size(U)...]-1 ...)
@@ -174,9 +175,9 @@ function helmholtzDerivative(U,w,dv,pad=pad)
     n_cells = prod([size(U)...]-1)
     v = ones(n_cells)*prod(dv)
 
-    G = w^2 * spdiagm(U[:])*Av'*spdiagm(v)
+    G = w^2 * spdiagm(U[:])*Av'*spdiagm(v .* s) * Ia
 
-    print(size(G))
+ 
     return G
 end 
 
