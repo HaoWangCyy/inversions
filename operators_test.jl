@@ -482,6 +482,36 @@ function adjointTest2D()
 end
 
 
+function jacobianConvergence(rho, w, m, Q, P,S, A, pad,dv)
+
+    v = rand(size(m))*10000
+
+    U = helmholtzNeumann(rho, w, m,Q,dv, S)
+    D = P'*reshape(U, prod(size(U)[1:2]), size(P)[2])
+
+    diff_lin = zeros(10)
+    diff_quad = zeros(10)
+    
+    for i =1:10
+        h = 10.0^(-i)
+
+        dm = v*h
+        J = jacobianv(U, A, P, w, dv, dm)
+        Ui = helmholtzNeumann(rho, w, m+dm, Q, dv, S)
+        Di = P'*reshape(Ui, prod(size(U)[1:2]), size(P)[2])
+        
+        diff_lin[i] = norm(Di[:]-D[:])
+     
+        diff_quad[i] = norm(Di[:] - D[:] - J[:])
+    end 
+                         
+        
+   return diff_lin, diff_quad     
+    
+end 
+
+    
+    
 function adjointVectorTest(u, A, P, w, dv)
 
     

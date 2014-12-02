@@ -166,7 +166,7 @@ function jacobianv(u, A, P, w, dv, v)
 
 end
 
-function helmholtzDerivative(U,w,dv)
+function helmholtzDerivative(U,w,dv,pad=pad)
 
 
     Av = nodeAvg([size(U)...]-1 ...)
@@ -176,6 +176,7 @@ function helmholtzDerivative(U,w,dv)
 
     G = w^2 * spdiagm(U[:])*Av'*spdiagm(v)
 
+    print(size(G))
     return G
 end 
 
