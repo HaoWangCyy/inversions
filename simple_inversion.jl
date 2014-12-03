@@ -10,10 +10,10 @@ n1 = 50;
 n2 = 40;
 
 #Pad and smooth models
-m = repmat(linspace(1,4,n1+20),1,n2+20)
+m = repmat(linspace(3,4,n1+20),1,n2+20)
 
 
-m0 = conv2(ones(20,20), m)[20:end, 20:end]/100.0;
+m0 = ones(size(m))*mean(m)
 
 # remove padding
 m = m[1:n1,1:n2];
@@ -29,7 +29,7 @@ dv = [1/n1,1/n2];
 
 # PML params(top, bottom, left, right)
 sigma = 1e6;
-pad = (10,10,10,10);
+pad = (0,10,10,10);
 
 # define the rest
 w = 5.0
@@ -67,11 +67,13 @@ plt.show()
 #--------------------------------------------------------------#
 
 # Test the sensitivity
-A,dummy = helmholtz(rho,w,m_pad,dv, S, s12);
-adjointVectorTest(u,m, A, P, w, dv, s12, Ia)
-l, quad = jacobianConvergence(rho,w,m_pad,m,Q,P,A,dv,S,s12,Ia)
+#A,dummy = helmholtz(rho,w,m_pad,dv, S, s12);
+#adjointVectorTest(u,m, A, P, w, dv, s12, Ia)
+#h,lin, quad = jacobianConvergence(rho,w,m_pad,m,Q,P,A,dv,S,s12,Ia)
 
-
+#plt.plot(log(10,h),log(10,quad))
+#plt.plot(log(10,h),log(10,lin))
+#plt.show()
 
 #--------------------------------------------------------------#
 
@@ -79,77 +81,81 @@ l, quad = jacobianConvergence(rho,w,m_pad,m,Q,P,A,dv,S,s12,Ia)
 # Inversion through gradient descent---------------------------#
 
 # Sove with m0
-u = helmholtzNeumann(rho, w, m0, Q, dv,S,s);
-um = reshape(u[pad[1]+1:pad[1]+n1+1, pad[3]+1:pad[3]+n2+1, :],
-             n1+1, n2+1, n2+1);
-D = real(reshape(um[1,:,:], n2+1, n2+1));
+u = helmholtzNeumann(rho, w, m0_pad, Q, dv,S,s12);
 
-sig = 1.e1;
+D = real(P'*reshape(u, prod(size(u)[1:2]),  n2+1));
+
+sig = 1.e9;
 r = D - Dobs;
 mis = 0.5*sig*(r[:]'*r[:]);
 
-A,dummy = helmholtz(rho,w,m0,dv,S);
-dmis = sig*jacobianTw(u, A, P, w, dv, r);
+A,dummy = helmholtz(rho,w,m0_pad,dv,S,s12);
+dmis = sig*jacobianTw(u, A, P, w, dv, r,s12,Ia);
 
 # initialize parameters used in the loop
-mc = m0;
+mc = m0_pad;
 Ut=0;
 mt = 0;
 Dt=0;
 rt=0;
 
 # loop through frequencies
-for f = w:w
+for f = 1:4
     w = f;
-    m0 = pad_model(real(m0[pad[1]+1:end-pad[2],pad[3]+1:end-pad[4]]), pad...);
-    #S, m0 = PML(m0, w, sigma, pad, dv);
-    u = helmholtzNeumann(rho, w, m0, Q, dv,S);
-    um = reshape(u[pad[1]+1:pad[1]+n1+1, pad[3]+1:pad[3]+n2+1, :],
-                 n1+1, n2+1, n2+1);
-    D = real(reshape(um[1,:,:], n2+1, n2+1));
+
+    sig = sig/f
+    sigma = sigma/f
+    S, s12 = PML(m_pad, w, sigma, pad, dv);
+    u = helmholtzNeumann(rho, w, m_pad, Q, dv,S, s12);
+    Dobs = real(P'*reshape(u, prod(size(u)[1:2]), size(u)[3]))
+    
+
+    S, s12 = PML(mc, w, sigma, pad, dv);
+    Ut = helmholtzNeumann(rho, w, mc, Q, dv,S,s12);
+    um = reshape(Ut, prod(size(u)[1:2]), n2+1);
+    
+    D = real(P'*um);
     
     r = D - Dobs;
     mis = 0.5*sig*(r[:]'*r[:]);
    
-    A,dummy = helmholtz(rho,w,m0,dv,S);
-    dmis = sig*jacobianTw(u, A, P, w, dv, r);
+    A,dummy = helmholtz(rho,w,mc,dv,S,s12);
 
-    
-    dmis = reshape(dmis, size(m))
-    dmis[1:pad[1],:] = 0
-    dmis[end-pad[2]:end, :] = 0
-    dmis[:,1:pad[3]] = 0
-    dmis[:,end-pad[4]:end] = 0
-    
+    dmis = sig*jacobianTw(u, A, P, w, dv, r, s12, Ia)
     dmis = dmis[:]
- 
-    
-    for i = 1:35
+
+    # gradient iterations
+    for i = 1:30
         muLS = 1;
         s = -dmis;
-        
+
+        # limit the gradient
         if maximum(abs(s))>0.1
             s = s/maximum(abs(s))*0.1;
         end
 
+        
         lscount = 1;
+    
 
         while true
-          
-            mt = mc +real(reshape(muLS*s, size(m)));
 
-            # Project onto solution space
+            mt = mc + reshape(real(Ia*muLS*s), size(mc))
+            
             mt[real(mt).>4] = 4
             mt[real(mt).< 3] = 3
-            Ut = helmholtzNeumann(rho, w, mt, Q, dv,S);
-            um = reshape(Ut[pad[1]+1:pad[1]+n1+1, pad[3]+1:pad[3]+n2+1, :],
-                         n1+1, n2+1, n2+1);
-            Dt = real(reshape(um[1,:,:], n2+1, n2+1));
+            
+            Ut = helmholtzNeumann(rho, w, mt, Q, dv,S, s12);
+        
+            um = reshape(Ut, prod(size(u)[1:2]), n2+1);
+            
+            Dt = real(P'*um);
+
             rt = Dt - Dobs;
             
             mist = 0.5*sig*(rt[:]'*rt[:]);
 
-            
+            print(mist)
 
             if mist[1] < mis[1]
                 break
@@ -161,54 +167,50 @@ for f = w:w
                 print("DAMN")
                 break
             end
-        end 
+       end
+
         mc = mt;
+
         D = Dt;
         U = Ut;
         r = rt ;
         ms = 0.5*sig*(r[:]'*r[:]);
-        A,dummy = helmholtz(rho,w,mc,dv,S);
-        dmis = sig*jacobianTw(U, A, P, w, dv, r);
 
-        dmis = reshape(dmis, size(m))
-        dmis[1:pad[1],:] = 0
-        dmis[end-pad[2]:end, :] = 0
-        dmis[:,1:pad[3]] = 0
-        dmis[:,end-pad[4]:end] = 0
+        A,dummy = helmholtz(rho,w,mc,dv,S, s12);
+        
+        dmis = sig*jacobianTw(U, A, P, w, dv, r, s12, Ia);
+
 
         dmis = dmis[:]
-
-        print([ms, maximum(dmis)])
-        plt.figure()
-        plt.subplot("221")
-        plt.imshow(D)
-        plt.subplot("222")
-        plt.imshow(Dobs)
+        #plt.figure()
+        #plt.subplot("221")
+        #plt.imshow(D)
+        #plt.subplot("222")
+        #plt.imshow(Dobs)
         #plt.imshow(real(mc[pad[1]+1:end-pad[2],pad[3]+1:end-pad[4]]))
-        plt.subplot("223")
-        plt.imshow(reshape(dmis, size(m)))
-        plt.subplot("224")
-        plt.imshow(r)
-       # plt.show()
+        #plt.subplot("223")
+        #plt.imshow(reshape(dmis, size(m)))
+        #plt.subplot("224")
+        #plt.imshow(r)
+        #plt.show()
      
     end
-    plt.figure()
-    plt.subplot("221")
-    plt.imshow(D)
-    plt.subplot("222")
-    plt.imshow(Dobs)
-    #plt.imshow(real(mc[pad[1]+1:end-pad[2],pad[3]+1:end-pad[4]]))
-    plt.subplot("223")
-    plt.imshow(reshape(dmis, size(m)))
-    plt.subplot("224")
-    plt.imshow(r)
-    #plt.show()
 
-    m0 = mc;
-    
-end
+    m0_pad = mc;
+end 
+
+m_end = real(reshape(Ia'*mc[:], size(m)))
 
 plt.figure()
-plt.imshow(real(m0[pad[1]+1:end-pad[2], pad[3]+1:end-pad[4]]))
+plt.subplot("221")
+plt.imshow(m)
+plt.subplot("222")
+plt.imshow(m0)
+plt.subplot("223")
+plt.imshow(m_end)
+plt.subplot("224")
+plt.imshow(m - m_end)
+
 plt.show()
-#plt.clf()
+
+print(norm(m-m_end))

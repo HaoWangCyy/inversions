@@ -512,7 +512,7 @@ function jacobianConvergence(rho, w, m_pad, m, Q, P, A,dv,S,s,Ia)
     end 
                          
         
-   return _h, diff_quad     
+   return _h, diff_lin, diff_quad     
     
 end 
 
