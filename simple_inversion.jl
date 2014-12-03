@@ -9,16 +9,22 @@ include("inversion_lib.jl")
 n1 = 50;
 n2 = 40;
 
+smooth=30
 #Pad and smooth models
-m = repmat(linspace(3,4,n1+20),1,n2+20)
+#m = repmat(linspace(3,4,n1),1,n2);
+m = zeros(n1+smooth,n2+smooth)
+m[1:10,:] = 3.2
+m[11:20,:]  = 3.5
+m[21:30, :] = 3.8
+m[31:end,:] = 4.0
 
-
-m0 = ones(size(m))*mean(m)
-
-# remove padding
+m0 = conv2(ones(smooth,smooth), m)[smooth:end, smooth:end]/smooth^2;
 m = m[1:n1,1:n2];
-m0 = m0[1:n1, 1:n2];
+m0 = m0[1:n1,1:n2];
 
+
+
+nq = n2
 #plt.subplot("211");
 #plt.imshow(m);
 #plt.subplot("212");
@@ -28,11 +34,12 @@ m0 = m0[1:n1, 1:n2];
 dv = [1/n1,1/n2];
 
 # PML params(top, bottom, left, right)
-sigma = 1e6;
-pad = (0,10,10,10);
-
+#sigma = 0;
+#pad = (0,0,0,0);
+sigma = 1e5;
+pad = (30,30,30,30);
 # define the rest
-w = 5.0
+w = 30.0
 
 # Apply the PML to the model
 m_pad, Ia = pad_model(m, pad...);
@@ -45,10 +52,10 @@ S0, s0 = PML(m0_pad, w, sigma, pad, dv);
 rho = ones(size(m_pad));
 
 # make the q matrix
-Q = zeros([size(m_pad)...]+1..., n2+1);
+Q = zeros([size(m_pad)...]+1..., nq);
 for i=1:size(Q)[3]
     q = zeros([size(m_pad)...]+1...)
-    q[pad[1] + 1, pad[3]+i] +=1
+    q[pad[1] + 1, pad[3]+i+2] +=1
 
     
     Q[:,:,i] = q;
@@ -60,9 +67,17 @@ P = reshape(Q, prod(size(Q)[1:2]), size(Q)[3]);
 #---------------------------------------------------------------#
 # Solve the true forward problem
 u = helmholtzNeumann(rho, w, m_pad, Q, dv,S, s12);
-Dobs = real(P'*reshape(u, prod(size(u)[1:2]), size(u)[3]))
+um = real(reshape(u, prod(size(u)[1:2]), size(u)[3]));
+Dobs = real(P'*um)
 
+plt.subplot("221")
 plt.imshow(Dobs)
+plt.subplot("222")
+plt.imshow(real(u[:,:,1]))
+plt.subplot("223")
+plt.imshow(real(u[:,:,end]))
+plt.subplot("224")
+plt.imshow(m0) 
 plt.show()
 #--------------------------------------------------------------#
 
@@ -83,7 +98,7 @@ plt.show()
 # Sove with m0
 u = helmholtzNeumann(rho, w, m0_pad, Q, dv,S,s12);
 
-D = real(P'*reshape(u, prod(size(u)[1:2]),  n2+1));
+D = real(P'*reshape(u, prod(size(u)[1:2]),  nq));
 
 sig = 1.e9;
 r = D - Dobs;
@@ -100,11 +115,9 @@ Dt=0;
 rt=0;
 
 # loop through frequencies
-for f = 1:4
+for f = 1:30
     w = f;
-
-    sig = sig/f
-    sigma = sigma/f
+    sig = sig * 5/f
     S, s12 = PML(m_pad, w, sigma, pad, dv);
     u = helmholtzNeumann(rho, w, m_pad, Q, dv,S, s12);
     Dobs = real(P'*reshape(u, prod(size(u)[1:2]), size(u)[3]))
@@ -112,7 +125,7 @@ for f = 1:4
 
     S, s12 = PML(mc, w, sigma, pad, dv);
     Ut = helmholtzNeumann(rho, w, mc, Q, dv,S,s12);
-    um = reshape(Ut, prod(size(u)[1:2]), n2+1);
+    um = reshape(Ut, prod(size(u)[1:2]), nq);
     
     D = real(P'*um);
     
@@ -125,7 +138,7 @@ for f = 1:4
     dmis = dmis[:]
 
     # gradient iterations
-    for i = 1:30
+    for i = 1:10
         muLS = 1;
         s = -dmis;
 
@@ -147,7 +160,7 @@ for f = 1:4
             
             Ut = helmholtzNeumann(rho, w, mt, Q, dv,S, s12);
         
-            um = reshape(Ut, prod(size(u)[1:2]), n2+1);
+            um = reshape(Ut, prod(size(u)[1:2]), nq);
             
             Dt = real(P'*um);
 
@@ -193,10 +206,9 @@ for f = 1:4
         #plt.subplot("224")
         #plt.imshow(r)
         #plt.show()
-     
-    end
 
-    m0_pad = mc;
+        
+    end
 end 
 
 m_end = real(reshape(Ia'*mc[:], size(m)))
