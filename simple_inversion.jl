@@ -4,6 +4,8 @@ include("operators.jl")
 include("operators_test.jl")
 include("inversion_lib.jl")
 
+plot_dir = "app_figures"
+
 @pyimport matplotlib.pyplot as plt
 
 n1 = 50;
@@ -114,8 +116,12 @@ mt = 0;
 Dt=0;
 rt=0;
 
+all_misfit = Float32[]
+it = 0
 # loop through frequencies
-for f = 1:30
+for f = 1:60
+    it = it +1
+    
     w = f;
     sig = sig * 5/f
     S, s12 = PML(m_pad, w, sigma, pad, dv);
@@ -144,7 +150,7 @@ for f = 1:30
 
         # limit the gradient
         if maximum(abs(s))>0.1
-            s = s/maximum(abs(s))*0.1;
+            s = s/maximum(abs(s))*0.1 / f;
         end
 
         
@@ -168,8 +174,6 @@ for f = 1:30
             
             mist = 0.5*sig*(rt[:]'*rt[:]);
 
-            print(mist)
-
             if mist[1] < mis[1]
                 break
             end 
@@ -189,27 +193,33 @@ for f = 1:30
         r = rt ;
         ms = 0.5*sig*(r[:]'*r[:]);
 
+        push!(all_misfit, ms[1]);
+
         A,dummy = helmholtz(rho,w,mc,dv,S, s12);
         
         dmis = sig*jacobianTw(U, A, P, w, dv, r, s12, Ia);
 
-
-        dmis = dmis[:]
-        #plt.figure()
-        #plt.subplot("221")
-        #plt.imshow(D)
-        #plt.subplot("222")
-        #plt.imshow(Dobs)
-        #plt.imshow(real(mc[pad[1]+1:end-pad[2],pad[3]+1:end-pad[4]]))
-        #plt.subplot("223")
-        #plt.imshow(reshape(dmis, size(m)))
-        #plt.subplot("224")
-        #plt.imshow(r)
-        #plt.show()
+        plt.figure()
+        plt.imshow(reshape(dmis, size(m)))
+        file_name = string(plot_dir,"/",w,"_",i,"_", it,"_",
+                           "gradient", ".png")
+        plt.savefig(file_name)
 
         
+        dmis = dmis[:]
+        
+        plt.figure()
+        plt.imshow(reshape(Ia'*mc[:], size(m)))
+        file_name = string(plot_dir,"/",w,"_",i,"_", it, "_",
+                           "model", ".png")
+        plt.savefig(file_name)
+
+        plt.close("all")
+
+        it = it +1
     end
 end 
+
 
 m_end = real(reshape(Ia'*mc[:], size(m)))
 
