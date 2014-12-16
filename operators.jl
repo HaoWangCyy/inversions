@@ -154,8 +154,6 @@ function jacobianTw(u, A, P, w, dv, V,s,Ia)
 end 
 
 function jacobianv(u, A, P, w, dv, v, s, Ia)
-
-    print(size(u[:,:,1]))
     
     Gv1 = helmholtzDerivative(u[:,:,1],w,dv,s, Ia)*v[:]
     Gv = zeros(Complex,length(Gv1), size(u)[3])
